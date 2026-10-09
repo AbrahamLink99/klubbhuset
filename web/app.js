@@ -12,7 +12,7 @@ const SECTIONS = [
 ];
 
 const app = document.getElementById("app");
-const state = { api: null, user: null };
+const state = { api: null, currentStory: null };
 
 // --- Hjälpfunktioner ---------------------------------------------------------
 
@@ -138,7 +138,7 @@ function minihead({ right = '<span class="spacer"></span>' } = {}) {
 
 function demoNotice() {
   return state.api.mode === "demo"
-    ? `<p class="notice"><b>Demoläge.</b> Det här är exempeldata. Fyll i <code>web/config.js</code> för att se riktiga nyheter.</p>`
+    ? `<p class="notice"><b>Demoläge.</b> Motorn har inte publicerat några nyheter ännu, så det här är exempel.</p>`
     : "";
 }
 
@@ -177,7 +177,7 @@ const loading = () => { app.innerHTML = `<div class="loading">Hämtar …</div>`
 async function viewFront() {
   const [{ stories, historia, media, lastRun }, read] = await Promise.all([
     state.api.frontPage(),
-    state.user ? state.api.readIds() : Promise.resolve(new Set()),
+    state.api.readIds(),
   ]);
   const main = stories.filter((s) => s.section !== "Historia");
   const [lead, ...rest] = main;
@@ -229,7 +229,7 @@ async function viewSection(slug) {
   if (slug === "youtube-poddar") return viewMedia(new URLSearchParams(location.hash.split("?")[1]).get("typ"));
   const [stories, read] = await Promise.all([
     state.api.section(section.name),
-    state.user ? state.api.readIds() : Promise.resolve(new Set()),
+    state.api.readIds(),
   ]);
   app.innerHTML = `${masthead(slug)}
     <div class="page-title"><h1>${esc(section.name)}</h1></div>
@@ -249,11 +249,9 @@ async function viewMedia(kind) {
 async function viewStory(id) {
   const { story, items } = await state.api.story(id);
   if (!story) return viewNotFound();
-  const [saved, related] = await Promise.all([
-    state.user ? state.api.isSaved(story.id) : Promise.resolve(false),
-    state.api.related(story),
-  ]);
-  if (state.user) state.api.markRead(story.id);
+  const [saved, related] = await Promise.all([state.api.isSaved(story.id), state.api.related(story)]);
+  state.api.markRead(story.id);
+  state.currentStory = story;
 
   const outlets = story.outlets || [];
   const angles = (story.angles || []).filter((a) => a.outlet && a.angle);
@@ -320,29 +318,12 @@ async function viewSearch(query) {
   if (!query) document.getElementById("q").focus();
 }
 
-function loginForm(message = "") {
-  return `<div class="px">
-    <div class="page-title" style="padding-left:0;padding-right:0"><h1>Logga in</h1>
-      <p>För att spara nyheter och komma ihåg vad du har läst. Du får en inloggningslänk på mejlen – inget lösenord.</p></div>
-    <form data-form="login">
-      <div class="field"><label for="email">E-post</label>
-        <input id="email" name="email" type="email" required autocomplete="email"></div>
-      <button class="btn solid" type="submit">Skicka inloggningslänk</button>
-    </form>
-    ${message ? `<p class="notice">${message}</p>` : ""}
-  </div>`;
-}
-
 async function viewSaved() {
-  if (!state.user) {
-    app.innerHTML = `${minihead()}${loginForm()}`;
-    return;
-  }
-  const stories = await state.api.saved();
+  const [stories, read] = await Promise.all([state.api.saved(), state.api.readIds()]);
   app.innerHTML = `${minihead()}
-    <div class="page-title"><h1>Sparat</h1><p>Inloggad som ${esc(state.user.email)}.</p></div>
-    ${storyList(stories, "Inget sparat ännu. Tryck på bokmärket i en nyhet för att spara den.")}
-    <div class="px" style="padding-top:24px"><button class="btn" data-action="logout">Logga ut</button></div>`;
+    <div class="page-title"><h1>Sparat</h1><p>Det du sparar ligger på den här enheten.</p></div>
+    ${stories.length ? stories.map((s) => storyRow(s, read)).join("")
+      : `<div class="empty">Inget sparat ännu. Tryck på bokmärket i en nyhet för att spara den.</div>`}`;
 }
 
 async function viewSections() {
@@ -354,7 +335,7 @@ async function viewSections() {
 }
 
 async function viewHealth() {
-  const sources = await state.api.health();
+  const { sources, last_run: lastRun } = await state.api.health();
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
   const rows = sources.map((s) => {
     const quiet = !s.last_new_item_at || new Date(s.last_new_item_at) < weekAgo;
@@ -365,7 +346,7 @@ async function viewHealth() {
     </tr>`;
   }).join("");
   app.innerHTML = `${minihead()}
-    <div class="page-title"><h1>Källornas hälsa</h1><p>Rött betyder fel vid senaste hämtningen, eller inget nytt på en vecka.</p></div>
+    <div class="page-title"><h1>Källornas hälsa</h1><p>${lastRun ? `Motorn körde senast ${esc(ago(lastRun.finished_at))}. ` : ""}Rött betyder fel vid senaste hämtningen, eller inget nytt på en vecka.</p></div>
     <div class="px"><table class="health"><thead><tr><th>Källa</th><th>Senaste hämtning</th><th>Senast nytt</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
@@ -422,19 +403,12 @@ document.addEventListener("click", async (event) => {
     else location.hash = "#/";
   } else if (action === "retry") {
     render();
-  } else if (action === "logout") {
-    await state.api.signOut();
-    render();
   } else if (action === "save") {
-    if (!state.user) {
-      location.hash = "#/sparat";
-      return;
-    }
     const on = target.getAttribute("aria-pressed") !== "true";
     target.setAttribute("aria-pressed", String(on));
     target.classList.toggle("on", on);
     target.setAttribute("aria-label", on ? "Ta bort från Sparat" : "Spara");
-    await state.api.setSaved(Number(target.dataset.id), on);
+    await state.api.setSaved(state.currentStory, on);
   }
 });
 
@@ -445,15 +419,6 @@ document.addEventListener("submit", async (event) => {
   if (form.dataset.form === "search") {
     const q = new FormData(form).get("q").toString().trim();
     location.hash = `#/sok?q=${encodeURIComponent(q)}`;
-  } else if (form.dataset.form === "login") {
-    const email = new FormData(form).get("email").toString().trim();
-    try {
-      await state.api.signIn(email);
-      if (state.api.mode === "demo") render();
-      else app.innerHTML = `${minihead()}${loginForm(`<b>Kolla din mejl.</b> Vi har skickat en inloggningslänk till ${esc(email)}.`)}`;
-    } catch (error) {
-      app.innerHTML = `${minihead()}${loginForm(`Det gick inte att skicka länken: ${esc(error.message || error)}`)}`;
-    }
   }
 });
 
@@ -461,12 +426,6 @@ window.addEventListener("hashchange", render);
 
 (async function start() {
   state.api = await createApi();
-  state.user = await state.api.user();
-  state.api.onAuthChange((user) => {
-    const changed = (user && user.id) !== (state.user && state.user.id);
-    state.user = user;
-    if (changed) render();
-  });
   await render();
   if ("serviceWorker" in navigator && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js").catch(() => {});

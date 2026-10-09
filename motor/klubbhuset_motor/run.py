@@ -1,7 +1,11 @@
 """Startar motorn.
 
-    python -m klubbhuset_motor.run                 # en vanlig körning
+    python -m klubbhuset_motor.run                 # hämta, sammanfatta och bygg sidan
+    python -m klubbhuset_motor.run --export-only   # bygg bara sidan från arkivet
     python -m klubbhuset_motor.run --check-feeds   # testa bara att flödena svarar
+
+Arkivet ligger i arkiv/klubbhuset.db och sidan byggs i site/ (ändras med
+KLUBBHUSET_DB och KLUBBHUSET_SITE).
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from . import feeds, fulltext, pipeline
 from .ai import ClaudeSummarizer
 from .catalog import load_catalog
 from .config import load_settings
+from .export import export_site
 from .store import Store
 
 
@@ -54,33 +59,39 @@ def check_feeds() -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Klubbhusets motor")
     parser.add_argument("--check-feeds", action="store_true", help="testa bara flödena")
+    parser.add_argument("--export-only", action="store_true", help="bygg bara sidan från arkivet")
     args = parser.parse_args(argv)
 
     if args.check_feeds:
         return check_feeds()
 
     settings = load_settings()
-    missing = [n for n, v in [("DATABASE_URL", settings.database_url),
-                              ("ANTHROPIC_API_KEY", settings.anthropic_api_key)] if not v]
-    if missing:
-        print(f"Saknar hemligheter: {', '.join(missing)}", file=sys.stderr)
-        return 2
-
-    catalog = load_catalog(settings.sources_file, settings.players_file)
-    store = Store(settings.database_url)
+    now = datetime.now(timezone.utc)
+    store = Store(settings.db_path)
     try:
-        with feeds.make_client(settings.user_agent, settings.fetch_timeout) as client:
-            pipeline.run(
-                settings=settings,
-                store=store,
-                catalog=catalog,
-                fetch=lambda due: feeds.fetch_all(
-                    due, client, settings.fetch_workers, settings.bing_delay_seconds
-                ),
-                summarizer=ClaudeSummarizer(settings.anthropic_api_key, settings.model),
-                fetch_text=lambda url: fulltext.fetch_article_text(url, client),
-                now=datetime.now(timezone.utc),
-            )
+        if not args.export_only:
+            if not settings.anthropic_api_key:
+                print("::warning title=AI-nyckel saknas::Lägg in ANTHROPIC_API_KEY under "
+                      "Settings → Secrets and variables → Actions för att få sammanfattningar."
+                      if os.environ.get("GITHUB_ACTIONS") else
+                      "ANTHROPIC_API_KEY saknas – inga sammanfattningar den här gången.")
+            catalog = load_catalog(settings.sources_file, settings.players_file)
+            summarizer = (ClaudeSummarizer(settings.anthropic_api_key, settings.model)
+                          if settings.anthropic_api_key else None)
+            with feeds.make_client(settings.user_agent, settings.fetch_timeout) as client:
+                pipeline.run(
+                    settings=settings,
+                    store=store,
+                    catalog=catalog,
+                    fetch=lambda due: feeds.fetch_all(
+                        due, client, settings.fetch_workers, settings.bing_delay_seconds),
+                    summarizer=summarizer,
+                    fetch_text=lambda url: fulltext.fetch_article_text(url, client),
+                    now=now,
+                )
+        counts = export_site(store, settings.web_dir, settings.site_dir, now)
+        print(f"Sidan byggd: {counts['front']} stories på förstasidan, "
+              f"{counts['stories']} i arkivet, {counts['media']} videor och avsnitt.")
     finally:
         store.close()
     return 0

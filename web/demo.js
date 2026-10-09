@@ -1,4 +1,4 @@
-// Demodata som visas tills config.js är ifylld. Rubriker, källor och avsnitt är exempel.
+// Demodata som visas tills motorn har publicerat riktiga nyheter. Rubriker, källor och avsnitt är exempel.
 
 const ago = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString();
 

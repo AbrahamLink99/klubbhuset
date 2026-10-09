@@ -37,7 +37,7 @@ def run(
     store: Store,
     catalog: list[Source],
     fetch: Callable[[list[Source]], list[FetchResult]],
-    summarizer: Summarizer,
+    summarizer: Summarizer | None,
     fetch_text: Callable[[str], str | None],
     now: datetime | None = None,
     log: Callable[[str], None] = print,
@@ -46,10 +46,10 @@ def run(
     started = clock()
     now = now or datetime.now(timezone.utc)
     stats = RunStats()
-    run_id = store.start_run()
+    run_id = store.start_run(now)
 
     # 1. Källor
-    store.sync_sources(catalog)
+    store.sync_sources(catalog, now)
     due = [s for s in catalog if due_this_run(s, now, settings.player_feed_every_hours)]
     log(f"Hämtar {len(due)} av {len(catalog)} flöden …")
 
@@ -57,18 +57,35 @@ def run(
     min_published = now - timedelta(hours=settings.lookback_hours)
     for result in fetch(due):
         if result.ok:
-            new = store.insert_items(result.source, result.items, min_published)
-            store.mark_source_checked(result.source.id, None, new)
+            new = store.insert_items(result.source, result.items, min_published, now)
+            store.mark_source_checked(result.source.id, None, new, now)
             stats.feeds_ok += 1
             stats.new_items += new
         else:
-            store.mark_source_checked(result.source.id, result.error, 0)
+            store.mark_source_checked(result.source.id, result.error, 0, now)
             stats.feeds_failed += 1
             stats.errors.append({"source": result.source.id, "error": result.error})
-    log(f"Flöden: {stats.feeds_ok} ok, {stats.feeds_failed} fel. Nya items: {stats.new_items}.")
+    log(f"Flöden: {stats.feeds_ok} ok, {stats.feeds_failed} fel. Nya poster: {stats.new_items}.")
 
+    if summarizer is None:
+        log("Ingen AI-nyckel – artiklarna sparas och sammanfattas när nyckeln finns på plats.")
+    else:
+        _summarize(settings, store, summarizer, fetch_text, now, stats, started, clock, log)
+
+    # 5. Rangordna
+    store.update_scores(now)
+    store.finish_run(run_id, stats.as_dict(), now)
+    log(
+        f"Klart: {stats.summarized} sammanfattade, {stats.skipped} bortsorterade, "
+        f"{stats.stories_created} nya stories, {stats.stories_updated} uppdaterade, "
+        f"{stats.synthesized} sammanvävda, {len(stats.errors)} fel."
+    )
+    return stats
+
+
+def _summarize(settings, store, summarizer, fetch_text, now, stats, started, clock, log) -> None:
     # 3. Sammanfatta och gruppera artiklar
-    candidates = store.candidate_stories(settings.story_window_hours)
+    candidates = store.candidate_stories(now, settings.story_window_hours)
     known_players = store.known_players()
     pending = store.pending_articles(settings.max_articles_per_run)
     log(f"Sammanfattar upp till {len(pending)} artiklar …")
@@ -90,15 +107,12 @@ def run(
                 text, words = item["original_title"], word_count(item["original_title"])
 
             cap = summary_word_cap(
-                words,
-                settings.summary_max_share,
-                settings.summary_min_words,
-                settings.summary_max_words,
+                words, settings.summary_max_share, settings.summary_min_words, settings.summary_max_words
             )
             result = summarizer.summarize_article(
                 outlet=item["outlet"],
                 original_title=item["original_title"],
-                published=item["published_at"],
+                published=item["published_dt"],
                 text=text,
                 is_full_text=full,
                 source_words=words,
@@ -113,15 +127,12 @@ def run(
 
             if result.same_story_id:
                 story_id = result.same_story_id
-                store.attach_to_story(story_id, item, result)
+                store.attach_to_story(story_id, item, result, now)
                 stats.stories_updated += 1
             else:
-                story_id = store.create_story(item, result)
-                candidates.insert(
-                    0,
-                    {"id": story_id, "title_sv": result.title_sv,
-                     "section": result.section, "outlet_count": 1},
-                )
+                story_id = store.create_story(item, result, now)
+                candidates.insert(0, {"id": story_id, "title_sv": result.title_sv,
+                                      "section": result.section, "outlet_count": 1})
                 stats.stories_created += 1
             store.save_article(item["id"], result, story_id, words)
             stats.summarized += 1
@@ -138,22 +149,9 @@ def run(
         if len(items) < 2:
             store.clear_synthesis_flag(story["id"])
             continue
-        cap = min(
-            settings.story_summary_max_words,
-            sum(word_count(i["summary"]) for i in items),
-        )
+        cap = min(settings.story_summary_max_words, sum(word_count(i["summary"]) for i in items))
         try:
-            store.save_story(story["id"], summarizer.synthesize_story(items=items, word_cap=cap))
+            store.save_story(story["id"], summarizer.synthesize_story(items=items, word_cap=cap), now)
             stats.synthesized += 1
         except Exception as exc:  # noqa: BLE001
             stats.errors.append({"story": story["id"], "error": f"{type(exc).__name__}: {exc}"[:300]})
-
-    # 5. Rangordna
-    store.update_scores()
-    store.finish_run(run_id, stats.as_dict())
-    log(
-        f"Klart: {stats.summarized} sammanfattade, {stats.skipped} bortsorterade, "
-        f"{stats.stories_created} nya stories, {stats.stories_updated} uppdaterade, "
-        f"{stats.synthesized} sammanvävda, {len(stats.errors)} fel."
-    )
-    return stats

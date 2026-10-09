@@ -1,12 +1,21 @@
 name: Motorn
 
-# Kör varje timme kl. 06–23 svensk sommartid och två gånger under natten.
-# Tiderna står i UTC. Minut 7 för att undvika rusningen vid hel timme.
+# Hämtar nyheterna, sammanfattar dem och publicerar appen på GitHub Pages.
+# Kör varje timme kl. 06–23 svensk sommartid och två gånger under natten (tiderna är i UTC).
+# När appen (web/) ändras publiceras den direkt, utan att motorn körs.
 on:
   schedule:
     - cron: "7 4-21 * * *"
     - cron: "7 0,2 * * *"
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["web/**"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: motorn
@@ -15,19 +24,76 @@ concurrency:
 jobs:
   kor:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: motor/requirements.txt
+
       - name: Installera
         run: pip install -r motor/requirements.txt
+
+      - name: Hämta arkivet
+        run: |
+          mkdir -p arkiv
+          if git fetch --quiet --depth 1 origin arkiv 2>/dev/null; then
+            git show FETCH_HEAD:klubbhuset.db.gz | gunzip > arkiv/klubbhuset.db
+            echo "Arkivet hämtat ($(du -h arkiv/klubbhuset.db | cut -f1))."
+          else
+            echo "Inget arkiv ännu – motorn börjar från noll."
+          fi
+
       - name: Kör motorn
+        if: github.event_name != 'push'
         working-directory: motor
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m klubbhuset_motor.run
+
+      - name: Bygg sidan från arkivet
+        if: github.event_name == 'push'
+        working-directory: motor
+        run: python -m klubbhuset_motor.run --export-only
+
+      - name: Spara arkivet
+        if: github.event_name != 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          work="$(mktemp -d)"
+          gzip -9 -c arkiv/klubbhuset.db > "$work/klubbhuset.db.gz"
+          cd "$work"
+          git init --quiet -b arkiv
+          git add klubbhuset.db.gz
+          git -c user.name="Klubbhusets motor" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "Arkivet $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push --quiet --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" arkiv
+          echo "Arkivet sparat ($(du -h klubbhuset.db.gz | cut -f1) komprimerat)."
+
+      - name: Förbered GitHub Pages
+        id: pages
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+
+      - name: Ladda upp sidan
+        if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publicera
+        id: deploy
+        if: steps.pages.outcome == 'success'
+        uses: actions/deploy-pages@v4
+
+      - name: Påminnelse om GitHub Pages
+        if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning title=GitHub Pages är inte påslaget::Gå till Settings → Pages och välj Source: GitHub Actions. Arkivet är sparat och appen publiceras vid nästa körning."

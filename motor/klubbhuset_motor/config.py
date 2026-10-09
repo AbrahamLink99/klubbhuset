@@ -16,8 +16,7 @@ def _env(name: str, default: str) -> str:
 
 @dataclass(frozen=True)
 class Settings:
-    database_url: str | None
-    anthropic_api_key: str | None
+    anthropic_api_key: str | None = None
 
     # AI
     model: str = "claude-haiku-5-5"
@@ -45,13 +44,16 @@ class Settings:
     # Måste vara ren ASCII – HTTP-huvuden tål inte å, ä och ö.
     user_agent: str = "Mozilla/5.0 (compatible; Klubbhuset/0.1; personal golf news reader)"
 
+    # Filer
     sources_file: Path = REPO_ROOT / "sources.yaml"
     players_file: Path = REPO_ROOT / "players.yaml"
+    db_path: Path = REPO_ROOT / "arkiv" / "klubbhuset.db"
+    web_dir: Path = REPO_ROOT / "web"
+    site_dir: Path = REPO_ROOT / "site"
 
 
 def load_settings() -> Settings:
     return Settings(
-        database_url=os.environ.get("DATABASE_URL") or None,
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
         model=_env("KLUBBHUSET_MODEL", "claude-haiku-5-5"),
         summary_max_share=float(_env("SUMMARY_MAX_SHARE", "0.25")),
@@ -62,4 +64,6 @@ def load_settings() -> Settings:
         time_budget_seconds=int(_env("TIME_BUDGET_SECONDS", str(13 * 60))),
         sources_file=Path(_env("SOURCES_FILE", str(REPO_ROOT / "sources.yaml"))),
         players_file=Path(_env("PLAYERS_FILE", str(REPO_ROOT / "players.yaml"))),
+        db_path=Path(_env("KLUBBHUSET_DB", str(REPO_ROOT / "arkiv" / "klubbhuset.db"))),
+        site_dir=Path(_env("KLUBBHUSET_SITE", str(REPO_ROOT / "site"))),
     )

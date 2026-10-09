@@ -5,6 +5,7 @@ name: Testa flöden
 # inget i databasen.
 on:
   push:
+    branches: [main]
     paths: ["sources.yaml", "players.yaml", ".github/workflows/testa-floden.yml"]
   workflow_dispatch: {}
 
