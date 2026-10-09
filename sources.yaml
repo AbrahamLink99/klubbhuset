@@ -25,11 +25,11 @@ sources:
      site: "https://golf.se", feed: "https://via.tt.se/rss/releases/latest?publisherId=3237066"}
 
   # --- Internationella sajter ---------------------------------------------
-  - {id: golfcom, name: GOLF.com, outlet: GOLF.com, kind: article, language: en, weight: 1.0,
+  - {id: golfcom, name: GOLF.com, outlet: GOLF.com, kind: article, language: en, weight: 1.0, active: false,
      site: "https://golf.com", feed: "https://golf.com/feed/"}
-  - {id: golfcom-instruction, name: GOLF.com – Instruktion, outlet: GOLF.com, kind: article, language: en, weight: 1.0,
+  - {id: golfcom-instruction, name: GOLF.com – Instruktion, outlet: GOLF.com, kind: article, language: en, weight: 1.0, active: false,
      site: "https://golf.com/instruction/", feed: "https://golf.com/feed/?category_name=instruction"}
-  - {id: golfcom-news, name: GOLF.com – Nyheter, outlet: GOLF.com, kind: article, language: en, weight: 0.5,
+  - {id: golfcom-news, name: GOLF.com – Nyheter, outlet: GOLF.com, kind: article, language: en, weight: 0.5, active: false,
      site: "https://golf.com/news/", feed: "https://golf.com/feed/?category_name=news"}
   - {id: golfmonthly, name: Golf Monthly, outlet: Golf Monthly, kind: article, language: en, weight: 1.0,
      site: "https://www.golfmonthly.com", feed: "https://www.golfmonthly.com/feeds/all"}
@@ -39,17 +39,17 @@ sources:
      site: "https://www.australiangolfdigest.com.au", feed: "https://www.australiangolfdigest.com.au/news/feed/"}
   - {id: mygolfspy, name: MyGolfSpy, outlet: MyGolfSpy, kind: article, language: en, weight: 1.0,
      site: "https://mygolfspy.com", feed: "https://feeds.feedburner.com/Mygolfspy"}
-  - {id: golfwrx-equipment, name: GolfWRX – Utrustning, outlet: GolfWRX, kind: article, language: en, weight: 1.0,
+  - {id: golfwrx-equipment, name: GolfWRX – Utrustning, outlet: GolfWRX, kind: article, language: en, weight: 1.0, active: false,
      site: "https://www.golfwrx.com/category/equipment/", feed: "https://www.golfwrx.com/category/equipment/feed/"}
-  - {id: golfwrx, name: GolfWRX, outlet: GolfWRX, kind: article, language: en, weight: 0.5,
+  - {id: golfwrx, name: GolfWRX, outlet: GolfWRX, kind: article, language: en, weight: 0.5, active: false,
      site: "https://www.golfwrx.com", feed: "https://www.golfwrx.com/feed/"}
-  - {id: pluggedingolf-reviews, name: Plugged In Golf – Recensioner, outlet: Plugged In Golf, kind: article, language: en, weight: 0.5,
+  - {id: pluggedingolf-reviews, name: Plugged In Golf – Recensioner, outlet: Plugged In Golf, kind: article, language: en, weight: 0.5, active: false,
      site: "https://www.pluggedingolf.com", feed: "https://www.pluggedingolf.com/category/reviews/feed/"}
   - {id: golf365, name: Golf365, outlet: Golf365, kind: article, language: en, weight: 1.0,
      site: "https://www.golf365.com", feed: "https://www.golf365.com/feed"}
   - {id: golfnewsnet, name: Golf News Net, outlet: Golf News Net, kind: article, language: en, weight: 0.5,
      site: "https://www.thegolfnewsnet.com", feed: "https://feeds.feedburner.com/golfnewsnet"}
-  - {id: golfclubatlas, name: Golf Club Atlas, outlet: Golf Club Atlas, kind: article, language: en, weight: 1.0,
+  - {id: golfclubatlas, name: Golf Club Atlas, outlet: Golf Club Atlas, kind: article, language: en, weight: 1.0, active: false,
      site: "https://www.golfclubatlas.com", feed: "https://www.golfclubatlas.com/feed/"}
   - {id: nolayingup, name: No Laying Up – texter, outlet: No Laying Up, kind: article, language: en, weight: 1.0,
      site: "https://nolayingup.com", feed: "https://nolayingup.com/feeds/writing.xml"}
@@ -59,6 +59,10 @@ sources:
      site: "https://www.golfmagic.com", feed: "https://www.golfmagic.com/rss.xml"}
   - {id: golfersjournal, name: The Golfer's Journal, outlet: The Golfer's Journal, kind: article, language: en, weight: 1.0,
      paywall: true, site: "https://www.golfersjournal.com", feed: "https://www.golfersjournal.com/editorial/feed/"}
+
+  # OBS: GOLF.com, GolfWRX, Plugged In Golf och Golf Club Atlas spärrar automatiska hämtningar
+  # från molnservrar (403, kontrollerat 9 okt 2026). Deras flöden ovan är avstängda; GOLF.com och
+  # GolfWRX hämtas i stället via Bings nyhetsindex nedan. Sätt active: true för att prova igen.
 
   # --- Touren (Bing-nyhetsflöden, officiella tourer saknar RSS) -----------
   - {id: bing-pgatour, name: PGA TOUR, outlet: PGA TOUR, kind: news_search, language: en, weight: 1.0,
@@ -71,6 +75,11 @@ sources:
      site: "https://www.europeantour.com/dpworld-tour/news/", feed: "https://www.bing.com/news/search?q=%22DP+World+Tour%22&format=rss"}
   - {id: bing-liv, name: LIV Golf (andra medier), kind: news_search, language: en, weight: 1.0,
      site: "https://www.livgolf.com/news", feed: "https://www.bing.com/news/search?q=%22LIV+Golf%22&format=rss"}
+
+  - {id: bing-golfcom, name: GOLF.com (via Bing), outlet: GOLF.com, kind: news_search, language: en, weight: 1.0,
+     site: "https://golf.com", feed: "https://www.bing.com/news/search?q=site%3Agolf.com&format=rss"}
+  - {id: bing-golfwrx, name: GolfWRX (via Bing), outlet: GolfWRX, kind: news_search, language: en, weight: 1.0,
+     site: "https://www.golfwrx.com", feed: "https://www.bing.com/news/search?q=site%3Agolfwrx.com&format=rss"}
 
   # --- YouTube ------------------------------------------------------------
   - {id: yt-meandmygolf, name: Me and My Golf, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCTwywdg9Sw5xs4wdN-qz7yw"}
