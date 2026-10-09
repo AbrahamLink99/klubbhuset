@@ -75,8 +75,6 @@ jobs:
         id: pages
         continue-on-error: true
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Ladda upp sidan
         if: steps.pages.outcome == 'success'
