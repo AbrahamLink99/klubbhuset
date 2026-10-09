@@ -21,7 +21,7 @@ Allt körs på GitHub – inga andra konton eller databaser behövs.
 1. **Settings → Pages**.
 2. Under *Build and deployment*, välj **Source: GitHub Actions**.
 
-Klart. Motorn kör nästa hel timme (klockan :07). Vill du inte vänta: **Actions → Motorn → Run workflow**.
+Klart. Motorn kör inom en halvtimme (klockan :07 och :37). Vill du inte vänta: **Actions → Motorn → Run workflow**.
 
 ### På telefonen
 

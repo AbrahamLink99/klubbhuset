@@ -1,16 +1,17 @@
 name: Motorn
 
 # Hämtar nyheterna, sammanfattar dem och publicerar appen på GitHub Pages.
-# Kör varje timme kl. 06–23 svensk sommartid och två gånger under natten (tiderna är i UTC).
-# När appen (web/) ändras publiceras den direkt, utan att motorn körs.
+# Schemat är två gånger i timmen kl. 06–23 svensk sommartid och två gånger under natten
+# (tiderna är i UTC). GitHub hoppar ibland över schemalagda körningar; med två per timme
+# blir det ändå minst en. Motorn kör också direkt när koden, källorna eller appen ändras.
 on:
   schedule:
-    - cron: "7 4-21 * * *"
+    - cron: "7,37 4-21 * * *"
     - cron: "7 0,2 * * *"
   workflow_dispatch: {}
   push:
     branches: [main]
-    paths: ["web/**"]
+    paths: ["web/**", "motor/**", "sources.yaml", "players.yaml", ".github/workflows/motorn.yml"]
 
 permissions:
   contents: write
@@ -51,19 +52,12 @@ jobs:
           fi
 
       - name: Kör motorn
-        if: github.event_name != 'push'
         working-directory: motor
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m klubbhuset_motor.run
 
-      - name: Bygg sidan från arkivet
-        if: github.event_name == 'push'
-        working-directory: motor
-        run: python -m klubbhuset_motor.run --export-only
-
       - name: Spara arkivet
-        if: github.event_name != 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

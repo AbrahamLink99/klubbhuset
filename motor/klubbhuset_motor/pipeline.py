@@ -74,7 +74,7 @@ def run(
 
     # 5. Rangordna
     store.update_scores(now)
-    store.finish_run(run_id, stats.as_dict(), now)
+    store.finish_run(run_id, stats.as_dict(), datetime.now(timezone.utc))
     log(
         f"Klart: {stats.summarized} sammanfattade, {stats.skipped} bortsorterade, "
         f"{stats.stories_created} nya stories, {stats.stories_updated} uppdaterade, "
