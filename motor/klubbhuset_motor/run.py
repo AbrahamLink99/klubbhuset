@@ -7,7 +7,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 
 from . import feeds, fulltext, pipeline
@@ -34,6 +36,18 @@ def check_feeds() -> int:
         print(f"{status}  {r.source.kind:<11} {r.source.id:<28} {detail}")
         failed += 0 if r.ok else 1
     print(f"\n{len(results) - failed} av {len(results)} flöden svarar.")
+
+    if os.environ.get("GITHUB_ACTIONS"):
+        # Sammanfattning som syns i GitHub-gränssnittet
+        total = Counter(r.source.kind for r in results)
+        ok = Counter(r.source.kind for r in results if r.ok)
+        per_kind = ", ".join(f"{kind} {ok[kind]}/{total[kind]}" for kind in sorted(total))
+        print(f"::notice title=Flödestest::{len(results) - failed} av {len(results)} svarar ({per_kind})")
+        for r in results:
+            if not r.ok:
+                print(f"::warning title={r.source.id}::{(r.error or '')[:200]}")
+            elif not r.items:
+                print(f"::warning title={r.source.id}::Svarar men har inga poster")
     return 0
 
 

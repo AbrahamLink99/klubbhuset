@@ -1,8 +1,11 @@
 name: Testa flöden
 
-# Startas för hand under Actions. Hämtar alla flöden och visar vilka som svarar.
-# Behöver inga nycklar och skriver inget i databasen.
+# Hämtar alla flöden och visar vilka som svarar. Körs automatiskt när källistan
+# ändras, och kan startas för hand under Actions. Behöver inga nycklar och skriver
+# inget i databasen.
 on:
+  push:
+    paths: ["sources.yaml", "players.yaml", ".github/workflows/testa-floden.yml"]
   workflow_dispatch: {}
 
 jobs:
