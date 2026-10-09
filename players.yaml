@@ -1,0 +1,30 @@
+# Svenska spelare som Klubbhuset följer (status 2026, kontrollerad 9 oktober 2026).
+# Varje spelare får ett eget Bing-nyhetsflöde på svenska, som hämtas var sjätte timme.
+# Lägg till eller ta bort rader när säsongen byts.
+
+players:
+  - {name: Ludvig Åberg, tours: [PGA Tour]}
+  - {name: Alex Norén, tours: [PGA Tour, DP World Tour]}
+  - {name: Jesper Svensson, tours: [PGA Tour]}
+  - {name: Pontus Nyholm, tours: [PGA Tour]}
+  - {name: Mikael Lindberg, tours: [DP World Tour]}
+  - {name: Sebastian Söderberg, tours: [DP World Tour]}
+  - {name: Hugo Townsend, tours: [DP World Tour]}
+  - {name: Tobias Jonsson, tours: [DP World Tour]}
+  - {name: Albin Bergström, tours: [DP World Tour]}
+  - {name: Jens Dantorp, tours: [DP World Tour]}
+  - {name: Niklas Lemke, tours: [DP World Tour]}
+  - {name: Joakim Lagergren, tours: [DP World Tour]}
+  - {name: Marcus Kinhult, tours: [DP World Tour]}
+  - {name: Simon Forsström, tours: [DP World Tour]}
+  - {name: Per Längfors, tours: [DP World Tour]}
+  - {name: Henrik Stenson, tours: [DP World Tour]}
+  - {name: Adam Blommé, tours: [HotelPlanner Tour, DP World Tour]}
+  - {name: Christofer Blomstrand, tours: [HotelPlanner Tour]}
+  - {name: Adam Wallin, tours: [HotelPlanner Tour]}
+  - {name: Tobias Edén, tours: [HotelPlanner Tour]}
+  - {name: Martin Eriksson, tours: [HotelPlanner Tour]}
+  - {name: Robin Petersson, tours: [HotelPlanner Tour]}
+  - {name: David Lingmerth, tours: [Korn Ferry Tour]}
+  - {name: Henrik Norlander, tours: [Korn Ferry Tour]}
+  - {name: Carl Pettersson, tours: [Korn Ferry Tour]}

@@ -1,0 +1,33 @@
+name: Motorn
+
+# Kör varje timme kl. 06–23 svensk sommartid och två gånger under natten.
+# Tiderna står i UTC. Minut 7 för att undvika rusningen vid hel timme.
+on:
+  schedule:
+    - cron: "7 4-21 * * *"
+    - cron: "7 0,2 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: motorn
+  cancel-in-progress: false
+
+jobs:
+  kor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: motor/requirements.txt
+      - name: Installera
+        run: pip install -r motor/requirements.txt
+      - name: Kör motorn
+        working-directory: motor
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m klubbhuset_motor.run

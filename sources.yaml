@@ -1,0 +1,126 @@
+# Klubbhusets källor – samma lista som i dokumentet "Klubbhuset – källistan".
+#
+# weight:  1.0 = Ja, 0.5 = Kanske. Ta bort en rad eller sätt active: false för Nej.
+# kind:    article     = textartiklar som sammanfattas av AI
+#          youtube     = videor (länkas ut, ingen sammanfattning)
+#          podcast     = poddavsnitt (länkas ut, ingen sammanfattning)
+#          news_search = Bing-nyhetsflöden; artiklarna kommer från olika sajter
+# paywall: true betyder att artiklarna är låsta. Då sammanfattas bara ingressen.
+
+sources:
+  # --- Svenska textkällor -------------------------------------------------
+  - {id: svenskgolf, name: Svensk Golf, outlet: Svensk Golf, kind: article, language: sv, weight: 1.0,
+     site: "https://www.svenskgolf.se", feed: "https://www.svenskgolf.se/feed/"}
+  - {id: svenskgolf-utrustning, name: Svensk Golf – Utrustning, outlet: Svensk Golf, kind: article, language: sv, weight: 1.0,
+     site: "https://www.svenskgolf.se/kategori/utrustning/", feed: "https://www.svenskgolf.se/kategori/utrustning/feed/"}
+  - {id: svenskgolf-golfskolan, name: Svensk Golf – Golfskolan, outlet: Svensk Golf, kind: article, language: sv, weight: 1.0,
+     site: "https://www.svenskgolf.se/kategori/golfskolan/", feed: "https://www.svenskgolf.se/kategori/golfskolan/feed/"}
+  - {id: golfbladet, name: Golfbladet, outlet: Golfbladet, kind: article, language: sv, weight: 1.0,
+     site: "https://golfbladet.se", feed: "https://www.golfbladet.se/feed/"}
+  - {id: golfbladet-utrustning, name: Golfbladet – Utrustning, outlet: Golfbladet, kind: article, language: sv, weight: 0.5,
+     site: "https://golfbladet.se/category/utrustning/", feed: "https://golfbladet.se/category/utrustning/feed/"}
+  - {id: svt-golf, name: SVT Sport Golf, outlet: SVT Sport, kind: article, language: sv, weight: 1.0,
+     site: "https://www.svt.se/sport/golf", feed: "https://www.svt.se/sport/golf/rss.xml"}
+  - {id: golfforbundet, name: Svenska Golfförbundet, outlet: Svenska Golfförbundet, kind: article, language: sv, weight: 0.5,
+     site: "https://golf.se", feed: "https://via.tt.se/rss/releases/latest?publisherId=3237066"}
+
+  # --- Internationella sajter ---------------------------------------------
+  - {id: golfcom, name: GOLF.com, outlet: GOLF.com, kind: article, language: en, weight: 1.0,
+     site: "https://golf.com", feed: "https://golf.com/feed/"}
+  - {id: golfcom-instruction, name: GOLF.com – Instruktion, outlet: GOLF.com, kind: article, language: en, weight: 1.0,
+     site: "https://golf.com/instruction/", feed: "https://golf.com/feed/?category_name=instruction"}
+  - {id: golfcom-news, name: GOLF.com – Nyheter, outlet: GOLF.com, kind: article, language: en, weight: 0.5,
+     site: "https://golf.com/news/", feed: "https://golf.com/feed/?category_name=news"}
+  - {id: golfmonthly, name: Golf Monthly, outlet: Golf Monthly, kind: article, language: en, weight: 1.0,
+     site: "https://www.golfmonthly.com", feed: "https://www.golfmonthly.com/feeds/all"}
+  - {id: golfmonthly-tips, name: Golf Monthly – Tips, outlet: Golf Monthly, kind: article, language: en, weight: 1.0,
+     site: "https://www.golfmonthly.com/tips", feed: "https://www.golfmonthly.com/feeds/tag/tips"}
+  - {id: ausgolfdigest, name: Australian Golf Digest, outlet: Golf Digest, kind: article, language: en, weight: 1.0,
+     site: "https://www.australiangolfdigest.com.au", feed: "https://www.australiangolfdigest.com.au/news/feed/"}
+  - {id: mygolfspy, name: MyGolfSpy, outlet: MyGolfSpy, kind: article, language: en, weight: 1.0,
+     site: "https://mygolfspy.com", feed: "https://feeds.feedburner.com/Mygolfspy"}
+  - {id: golfwrx-equipment, name: GolfWRX – Utrustning, outlet: GolfWRX, kind: article, language: en, weight: 1.0,
+     site: "https://www.golfwrx.com/category/equipment/", feed: "https://www.golfwrx.com/category/equipment/feed/"}
+  - {id: golfwrx, name: GolfWRX, outlet: GolfWRX, kind: article, language: en, weight: 0.5,
+     site: "https://www.golfwrx.com", feed: "https://www.golfwrx.com/feed/"}
+  - {id: pluggedingolf-reviews, name: Plugged In Golf – Recensioner, outlet: Plugged In Golf, kind: article, language: en, weight: 0.5,
+     site: "https://www.pluggedingolf.com", feed: "https://www.pluggedingolf.com/category/reviews/feed/"}
+  - {id: golf365, name: Golf365, outlet: Golf365, kind: article, language: en, weight: 1.0,
+     site: "https://www.golf365.com", feed: "https://www.golf365.com/feed"}
+  - {id: golfnewsnet, name: Golf News Net, outlet: Golf News Net, kind: article, language: en, weight: 0.5,
+     site: "https://www.thegolfnewsnet.com", feed: "https://feeds.feedburner.com/golfnewsnet"}
+  - {id: golfclubatlas, name: Golf Club Atlas, outlet: Golf Club Atlas, kind: article, language: en, weight: 1.0,
+     site: "https://www.golfclubatlas.com", feed: "https://www.golfclubatlas.com/feed/"}
+  - {id: nolayingup, name: No Laying Up – texter, outlet: No Laying Up, kind: article, language: en, weight: 1.0,
+     site: "https://nolayingup.com", feed: "https://nolayingup.com/feeds/writing.xml"}
+  - {id: shackelford, name: Geoff Shackelford, outlet: Geoff Shackelford, kind: article, language: en, weight: 0.5,
+     site: "https://www.geoffshackelford.com", feed: "https://www.geoffshackelford.com/homepage?format=rss"}
+  - {id: golfmagic, name: Golf Magic, outlet: Golf Magic, kind: article, language: en, weight: 0.5,
+     site: "https://www.golfmagic.com", feed: "https://www.golfmagic.com/rss.xml"}
+  - {id: golfersjournal, name: The Golfer's Journal, outlet: The Golfer's Journal, kind: article, language: en, weight: 1.0,
+     paywall: true, site: "https://www.golfersjournal.com", feed: "https://www.golfersjournal.com/editorial/feed/"}
+
+  # --- Touren (Bing-nyhetsflöden, officiella tourer saknar RSS) -----------
+  - {id: bing-pgatour, name: PGA TOUR, outlet: PGA TOUR, kind: news_search, language: en, weight: 1.0,
+     site: "https://www.pgatour.com/news", feed: "https://www.bing.com/news/search?q=site%3Apgatour.com&format=rss"}
+  - {id: bing-lpga, name: LPGA, outlet: LPGA, kind: news_search, language: en, weight: 1.0,
+     site: "https://www.lpga.com/news", feed: "https://www.bing.com/news/search?q=site%3Alpga.com&format=rss"}
+  - {id: bing-randa, name: The R&A, outlet: The R&A, kind: news_search, language: en, weight: 1.0,
+     site: "https://www.randa.org", feed: "https://www.bing.com/news/search?q=site%3Aranda.org&format=rss"}
+  - {id: bing-dpworldtour, name: DP World Tour (andra medier), kind: news_search, language: en, weight: 1.0,
+     site: "https://www.europeantour.com/dpworld-tour/news/", feed: "https://www.bing.com/news/search?q=%22DP+World+Tour%22&format=rss"}
+  - {id: bing-liv, name: LIV Golf (andra medier), kind: news_search, language: en, weight: 1.0,
+     site: "https://www.livgolf.com/news", feed: "https://www.bing.com/news/search?q=%22LIV+Golf%22&format=rss"}
+
+  # --- YouTube ------------------------------------------------------------
+  - {id: yt-meandmygolf, name: Me and My Golf, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCTwywdg9Sw5xs4wdN-qz7yw"}
+  - {id: yt-dannymaude, name: Danny Maude, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCQb15iVbplme18QP-nuyWng"}
+  - {id: yt-cogorno, name: Eric Cogorno Golf, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UClOp9ASmFYATO1zFfpB7QlA"}
+  - {id: yt-harrington, name: Padraig Harrington, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCJolpQHWLAW6cCUYGgean8w"}
+  - {id: yt-chrisryan, name: Chris Ryan Golf, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCKo7Y45mcjDtLKiCx6ZTvAg"}
+  - {id: yt-golfsidekick, name: Golf Sidekick, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCaeGjmOiTxekbGUDPKhoU-A"}
+  - {id: yt-mygolfspy, name: MyGolfSpy, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCQGFteokFe4j0i8xcNklQFA"}
+  - {id: yt-golfmonthly, name: Golf Monthly, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHs_XdW23ArpXSfYUiscoRA"}
+  - {id: yt-crossfield, name: Mark Crossfield, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCZelGnfKLXic4gDP63dIRxw"}
+  - {id: yt-rickshiels, name: Rick Shiels Golf, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCFHZHhZaH7Rc_FOMIzUziJA"}
+  - {id: yt-peterfinch, name: Peter Finch Golf, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCFoez1Xjc90CsHvCzqKnLcw"}
+  - {id: yt-goodgood, name: Good Good, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCfi-mPMOmche6WI-jkvnGXw"}
+  - {id: yt-bobdoessports, name: Bob Does Sports, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCqr4sONkmFEOPc3rfoVLEvg"}
+  - {id: yt-friedegg, name: Fried Egg Golf, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCc5JXe0hSVA-VOh0x5qkXag"}
+  - {id: yt-pgatour, name: PGA TOUR, kind: youtube, weight: 0.5, active: false, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCKwGZZMrhNYKzucCtTPY2Nw"}
+  - {id: yt-randomgolfclub, name: Random Golf Club, kind: youtube, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCR4Yfr8HAZJd9X24dwuAt1Q"}
+  - {id: yt-dpworldtour, name: DP World Tour, kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvZwbZt6YZQ4wj_7qyjPDZw"}
+  - {id: yt-clubchampion, name: Club Champion (f.d. TXG), kind: youtube, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCDdF3VYuCTZ9HuEnkGdPkCQ"}
+  # Svenska kanaler
+  - {id: yt-carldeman, name: Carl Déman, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8cfk8pC0bHGeVVde7F5r6A"}
+  - {id: yt-mxpgolf, name: MXP Golf, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UC5Yg5pOfAUI7hgk99nVzaaA"}
+  - {id: yt-abbestimpen, name: Abbe & Stimpen, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCr_svcOJAErshYjvj-Di7OA"}
+  - {id: yt-marcusedblad, name: Bättre & Enklare golf med Marcus Edblad, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCUB_q7vMnkEvClTxpIvwOFw"}
+  - {id: yt-johannajohnson, name: Johanna Johnson Golf, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEUE-X57AO8xvLG-iwi318A"}
+  - {id: yt-golfaraben, name: Golfaraben, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCVBhbmTA2eVHu9aT9wgyFRw"}
+  - {id: yt-klubbansfel, name: Klubbans fel, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCh9wLoKZ4FPlUaCuAx2Aj2g"}
+  - {id: yt-golftugget, name: Golftugget, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCvN5st3aU4vt76TYOPqqqAQ"}
+  - {id: yt-pettsongolf, name: Pettson Golf, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UC5NTgChQkrtrK03WKwwU8_Q"}
+  - {id: yt-svenskgolf, name: Svensk Golf, kind: youtube, language: sv, weight: 1.0, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCSFsCu6-1y5Idq5s87Pn43A"}
+  - {id: yt-wtv, name: WTV, kind: youtube, language: sv, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UC6C1DHSpCK0eVCKLUCSP-Gg"}
+  - {id: yt-svenskagolfbanor, name: Svenska Golfbanor, kind: youtube, language: sv, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UC7d0WWoEPGw-fHZIQRNXBCQ"}
+  - {id: yt-dromgolf, name: Drömgolf, kind: youtube, language: sv, weight: 0.5, feed: "https://www.youtube.com/feeds/videos.xml?channel_id=UCU4_UZcYJiWu-cCSMeJ_Xug"}
+
+  # --- Poddar -------------------------------------------------------------
+  - {id: pod-klubbansfel, name: Klubbans fel, kind: podcast, language: sv, weight: 1.0, feed: "https://feed.pod.space/klubbansfel"}
+  - {id: pod-tvaklubblangder, name: Två klubblängder, kind: podcast, language: sv, weight: 1.0, feed: "https://feed.podbean.com/tvaklubblangder/feed.xml"}
+  - {id: pod-18min, name: 18 min med Svensk Golf, kind: podcast, language: sv, weight: 1.0, feed: "https://rss.buzzsprout.com/152320.rss"}
+  - {id: pod-golfsnack, name: Golfsnack med Carro & gäster, kind: podcast, language: sv, weight: 1.0, feed: "https://feeds.acast.com/public/shows/690122d7aee65e114ae79c59"}
+  - {id: pod-svingtankar, name: Svingtankar, kind: podcast, language: sv, weight: 1.0, feed: "https://anchor.fm/s/109acb96c/podcast/rss"}
+  - {id: pod-regelpodden, name: Regelpodden, kind: podcast, language: sv, weight: 1.0, feed: "https://feed.podbean.com/regelpodden/feed.xml"}
+  - {id: pod-nolayingup, name: No Laying Up, kind: podcast, weight: 1.0, feed: "https://feeds.megaphone.fm/nolayingup"}
+  - {id: pod-friedegg, name: The Fried Egg Golf Podcast, kind: podcast, weight: 1.0, feed: "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/ba9cf483-2469-4852-9c0e-b43601500cc8/97b66bdc-acbc-4d10-a01b-b43601500cf4/podcast.rss"}
+  - {id: pod-designinggolf, name: Designing Golf, kind: podcast, weight: 1.0, feed: "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/a42b4aef-376a-4e3e-9b21-b43601500d37/ff530ff0-39d3-4608-96e5-b43601500d42/podcast.rss"}
+  - {id: pod-shotgunstart, name: The Shotgun Start, kind: podcast, weight: 1.0, feed: "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/515d2905-7975-4b85-a224-b43601500d1e/3ecdf081-be76-4016-acac-b43601500d26/podcast.rss"}
+  - {id: pod-sweetspot, name: The Sweet Spot, kind: podcast, weight: 1.0, feed: "https://feeds.megaphone.fm/BLU3125919456"}
+  - {id: pod-golfersjournal, name: The Golfer's Journal Podcast, kind: podcast, weight: 1.0, feed: "https://anchor.fm/s/dad135dc/podcast/rss"}
+  - {id: pod-golfchannel, name: Golf Channel Podcast (Rex & Lav), kind: podcast, weight: 1.0, feed: "https://feeds.simplecast.com/pArSbzdh"}
+  - {id: pod-subpar, name: Subpar, kind: podcast, weight: 1.0, feed: "https://rss.podscribe.ai/p/https://anchor.fm/s/ffab4ff0/podcast/rss"}
+  - {id: pod-smylie, name: The Smylie Show, kind: podcast, weight: 1.0, feed: "https://audioboom.com/channels/5151517.rss"}
+  - {id: pod-rickshiels, name: The Rick Shiels Golf Show, kind: podcast, weight: 1.0, feed: "https://feeds.acast.com/public/shows/611b69c2d62db90012cd2c72"}
+  - {id: pod-foreplay, name: Fore Play, kind: podcast, weight: 1.0, feed: "https://mcsorleys.barstoolsports.com/feed/fore-play"}

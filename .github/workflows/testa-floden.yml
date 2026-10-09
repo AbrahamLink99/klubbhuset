@@ -1,0 +1,22 @@
+name: Testa flöden
+
+# Startas för hand under Actions. Hämtar alla flöden och visar vilka som svarar.
+# Behöver inga nycklar och skriver inget i databasen.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  testa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: motor/requirements.txt
+      - run: pip install -r motor/requirements.txt
+      - name: Testa alla flöden
+        working-directory: motor
+        run: python -m klubbhuset_motor.run --check-feeds
