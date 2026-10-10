@@ -95,6 +95,9 @@ class Store:
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        columns = {r["name"] for r in self.conn.execute("pragma table_info(items)").fetchall()}
+        if "image_checked" not in columns:
+            self.conn.execute("alter table items add column image_checked integer not null default 0")
         # Städa bort meningar där AI:n skrev om underlaget i stället för om nyheten
         for table in ("stories", "items"):
             for row in self.conn.execute(
@@ -214,8 +217,28 @@ class Store:
              story_id, source_words, item_id),
         )
 
-    def set_item_image(self, item_id: int, image_url: str) -> None:
-        self._write("update items set image_url = ? where id = ?", (image_url, item_id))
+    def set_item_image(self, item_id: int, image_url: str | None) -> None:
+        """Sparar artikelsidans bild och ger den till storyn om den saknar bild."""
+        self._write(
+            "update items set image_url = coalesce(?, image_url), image_checked = 1 where id = ?",
+            (image_url, item_id),
+        )
+        if image_url:
+            self._write(
+                "update stories set image_url = ? where image_url is null and id = (select story_id from items where id = ?)",
+                (image_url, item_id),
+            )
+
+    def items_missing_image(self, now: datetime, limit: int) -> list[dict]:
+        return self._rows(
+            """
+            select i.id, i.url from items i join sources s on s.id = i.source_id
+            where i.kind = 'article' and i.status = 'ready' and i.image_url is null
+              and i.image_checked = 0 and s.paywall = 0 and i.published_at > ?
+            order by i.published_at desc limit ?
+            """,
+            (iso(now - timedelta(days=7)), limit),
+        )
 
     def mark_item_skipped(self, item_id: int) -> None:
         self._write(

@@ -210,3 +210,17 @@ def test_meta_summaries_are_cleaned_when_archive_opens(tmp_path):
     summaries = sorted(s["summary"] for s in again.all_stories())
     assert summaries == ["", "Rahm lämnar LIV. Han siktar på PGA Tour."]
     again.conn.close()
+
+
+def test_missing_images_are_filled_in_afterwards(store):
+    run(settings=SETTINGS, store=store, catalog=[GOLFCOM], fetch=lambda due: [FetchResult(GOLFCOM, [FeedItem(
+            url="https://golf.com/no-image", title="No image here", published=NOW - timedelta(hours=1),
+            text=LONG_TEXT)])],
+        summarizer=FakeSummarizer(), fetch_page=lambda url: None, now=NOW, log=lambda _: None)
+    assert store.all_stories()[0]["image_url"] is None
+    store.conn.execute("update items set image_checked = 0")  # som en äldre artikel från före bildhämtningen
+    store.conn.commit()
+    run(settings=SETTINGS, store=store, catalog=[GOLFCOM], fetch=lambda due: [FetchResult(GOLFCOM, [])],
+        summarizer=FakeSummarizer(), fetch_page=lambda url: ArticlePage(text=None, image="https://golf.com/late.jpg"),
+        now=NOW, log=lambda _: None)
+    assert store.all_stories()[0]["image_url"] == "https://golf.com/late.jpg"

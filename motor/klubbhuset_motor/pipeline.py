@@ -107,7 +107,7 @@ def _summarize(settings, store, summarizer, fetch_page, now, stats, started, clo
                     full = words >= settings.min_words_for_feed_text
                 if page and page.image and not item["image_url"]:
                     item["image_url"] = page.image
-                    store.set_item_image(item["id"], page.image)
+                store.set_item_image(item["id"], page.image if page else None)
             if words == 0:
                 text, words = item["original_title"], word_count(item["original_title"])
 
@@ -146,6 +146,13 @@ def _summarize(settings, store, summarizer, fetch_page, now, stats, started, clo
             error = f"{type(exc).__name__}: {exc}"
             store.mark_item_failed(item["id"], error)
             stats.errors.append({"item": item["id"], "error": error[:300]})
+
+    # Bilder i efterhand för den senaste veckans nyheter som saknar bild
+    for missing in store.items_missing_image(now, limit=15):
+        if clock() - started > settings.time_budget_seconds:
+            break
+        page = fetch_page(missing["url"])
+        store.set_item_image(missing["id"], page.image if page else None)
 
     # 4. Väv ihop stories med flera källor
     for story in store.stories_needing_synthesis(settings.max_story_syntheses_per_run):
