@@ -135,7 +135,6 @@ function masthead(active) {
       <h1>Klubbhuset</h1>
       <div class="tagline">Golf · Touren · Teknik · Historia</div>
     </header>
-    <div class="compactbar" aria-hidden="true"><button data-action="top" tabindex="-1">Klubbhuset</button></div>
     <div class="navwrap"><nav class="sectionnav" aria-label="Sektioner">${nav}</nav></div>
     ${demoNotice()}`;
 }
@@ -417,14 +416,6 @@ async function render() {
   if (nav) nav.addEventListener("scroll", updateNavFade, { passive: true });
   window.scrollTo(0, 0);
   updateNavFade();
-  updateCompact();
-}
-
-// Tidningshuvudet krymper till en smal rad när sektionsraden har fastnat i toppen
-function updateCompact() {
-  const wrap = document.querySelector(".navwrap");
-  const stuck = !!wrap && wrap.getBoundingClientRect().top <= 1 && window.scrollY > 0;
-  document.body.classList.toggle("compact", stuck);
 }
 
 // Tona ut högerkanten så länge det finns fler sektioner att svepa fram
@@ -435,7 +426,6 @@ function updateNavFade() {
   nav.parentElement.classList.toggle("more", more);
 }
 
-window.addEventListener("scroll", updateCompact, { passive: true });
 window.addEventListener("resize", updateNavFade);
 
 document.addEventListener("click", async (event) => {
@@ -447,8 +437,6 @@ document.addEventListener("click", async (event) => {
     else location.hash = "#/";
   } else if (action === "retry") {
     render();
-  } else if (action === "top") {
-    window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (action === "theme") {
     local.setTheme(target.dataset.value);
     applyTheme(target.dataset.value);
