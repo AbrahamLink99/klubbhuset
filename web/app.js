@@ -27,8 +27,7 @@ const ICON = {
   bookmark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16l-5-3.5L7 20z"/></svg>',
   external: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/></svg>',
   play: '<svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7l8 5-8 5z"/></svg>',
-  sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
-  moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M5.6 18.4l1.6-1.6M16.8 7.2l1.6-1.6"/></svg>',
   headphones: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6" rx="1.5"/><rect x="16.5" y="14" width="4" height="6" rx="1.5"/></svg>',
 };
 
@@ -48,11 +47,12 @@ const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 function applyTheme(choice) {
   if (choice === "light" || choice === "dark") document.documentElement.dataset.theme = choice;
   else delete document.documentElement.dataset.theme;
-}
-
-function effectiveTheme() {
-  const choice = local.theme();
-  return choice === "auto" ? (darkQuery.matches ? "dark" : "light") : choice;
+  // Statusraden ska ha samma färg som appen, även när temat är valt i appen
+  const forced = choice === "light" ? "#ffffff" : choice === "dark" ? "#121212" : null;
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+    const own = meta.media.includes("dark") ? "#121212" : "#ffffff";
+    meta.setAttribute("content", forced || own);
+  });
 }
 
 const GENERIC_WORDS = new Set(["golf", "the", "on", "msn", "com", "www"]);
@@ -130,14 +130,13 @@ function masthead(active) {
       `<a href="#/sektion/${s.slug}" class="${active === s.slug ? "active" : ""}">${esc(s.name)}</a>`))
     .join("");
   return `
-    <header class="topbar">
-      <button class="icon-btn" data-action="toggle-theme"
-        aria-label="${effectiveTheme() === "dark" ? "Byt till ljust tema" : "Byt till mörkt tema"}">${effectiveTheme() === "dark" ? ICON.sun : ICON.moon}</button>
-      <span class="date">${esc(todayLine())}</span>
-      <a class="icon-btn" href="#/sok" aria-label="Sök">${ICON.search}</a>
+    <header class="masthead">
+      <div class="date">${esc(todayLine())}</div>
+      <h1>Klubbhuset</h1>
+      <div class="tagline">Golf · Touren · Teknik · Historia</div>
     </header>
-    <div class="masthead"><h1>Klubbhuset</h1><div class="tagline">Golf · Touren · Teknik · Historia</div></div>
-    <nav class="sectionnav" aria-label="Sektioner">${nav}</nav>
+    <div class="compactbar" aria-hidden="true"><button data-action="top" tabindex="-1">Klubbhuset</button></div>
+    <div class="navwrap"><nav class="sectionnav" aria-label="Sektioner">${nav}</nav></div>
     ${demoNotice()}`;
 }
 
@@ -333,18 +332,15 @@ async function viewSearch(query) {
 
 async function viewSaved() {
   const [stories, read] = await Promise.all([state.api.saved(), state.api.readIds()]);
-  app.innerHTML = `${minihead()}
+  app.innerHTML = `${minihead({ right: `<a class="icon-btn" href="#/installningar" aria-label="Inställningar">${ICON.gear}</a>` })}
     <div class="page-title"><h1>Sparat</h1><p>Det du sparar ligger på den här enheten.</p></div>
     ${stories.length ? stories.map((s) => storyRow(s, read)).join("")
       : `<div class="empty">Inget sparat ännu. Tryck på bokmärket i en nyhet för att spara den.</div>`}`;
 }
 
-async function viewSections() {
+async function viewSettings() {
   app.innerHTML = `${minihead()}
-    <div class="page-title"><h1>Sektioner</h1></div>
-    ${SECTIONS.map((s) => `<a class="row" href="#/sektion/${s.slug}"><div class="text"><h3 class="title">${esc(s.name)}</h3></div></a>`).join("")}
-    <a class="row" href="#/halsa"><div class="text"><div class="kicker">Drift</div><h3 class="title">Källornas hälsa</h3>
-      <p>Vilka flöden som svarar och när de senast gav något nytt.</p></div></a>
+    <div class="page-title"><h1>Inställningar</h1></div>
     <section class="settings">
       <div class="block-head"><h2>Utseende</h2></div>
       <div class="chips" role="group" aria-label="Tema">
@@ -352,7 +348,12 @@ async function viewSections() {
           `<button class="chip ${local.theme() === value ? "on" : ""}" data-action="theme" data-value="${value}"
             aria-pressed="${local.theme() === value}">${label}</button>`).join("")}
       </div>
-    </section>`;
+    </section>
+    <section class="settings">
+      <div class="block-head"><h2>Drift</h2></div>
+    </section>
+    <a class="row" href="#/halsa"><div class="text"><h3 class="title">Källornas hälsa</h3>
+      <p>Vilka flöden som svarar och när de senast gav något nytt.</p></div></a>`;
 }
 
 async function viewHealth() {
@@ -381,7 +382,7 @@ function viewNotFound() {
 function activeTab(route) {
   const tab = route.startsWith("sok") ? "sok"
     : route.startsWith("sparat") ? "sparat"
-    : route.startsWith("sektioner") || route.startsWith("halsa") ? "sektioner"
+    : /^(installningar|sektioner|halsa)/.test(route) ? "sparat"
     : "idag";
   document.querySelectorAll(".tabbar a").forEach((a) =>
     a.classList.toggle("active", a.dataset.tab === tab));
@@ -397,7 +398,7 @@ async function render() {
     if (!parts.length) await viewFront();
     else if (parts[0] === "story" && parts[1]) await viewStory(Number(parts[1]));
     else if (parts[0] === "sektion" && parts[1]) await viewSection(parts[1]);
-    else if (parts[0] === "sektioner") await viewSections();
+    else if (parts[0] === "installningar" || parts[0] === "sektioner") await viewSettings();
     else if (parts[0] === "sok") await viewSearch(new URLSearchParams(query).get("q") || "");
     else if (parts[0] === "sparat") await viewSaved();
     else if (parts[0] === "halsa") await viewHealth();
@@ -412,8 +413,30 @@ async function render() {
     const nav = activeSection.parentElement;
     nav.scrollLeft = activeSection.offsetLeft - nav.clientWidth / 2 + activeSection.clientWidth / 2;
   }
+  const nav = document.querySelector(".sectionnav");
+  if (nav) nav.addEventListener("scroll", updateNavFade, { passive: true });
   window.scrollTo(0, 0);
+  updateNavFade();
+  updateCompact();
 }
+
+// Tidningshuvudet krymper till en smal rad när sektionsraden har fastnat i toppen
+function updateCompact() {
+  const wrap = document.querySelector(".navwrap");
+  const stuck = !!wrap && wrap.getBoundingClientRect().top <= 1 && window.scrollY > 0;
+  document.body.classList.toggle("compact", stuck);
+}
+
+// Tona ut högerkanten så länge det finns fler sektioner att svepa fram
+function updateNavFade() {
+  const nav = document.querySelector(".sectionnav");
+  if (!nav) return;
+  const more = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4;
+  nav.parentElement.classList.toggle("more", more);
+}
+
+window.addEventListener("scroll", updateCompact, { passive: true });
+window.addEventListener("resize", updateNavFade);
 
 document.addEventListener("click", async (event) => {
   const target = event.target.closest("[data-action]");
@@ -424,12 +447,8 @@ document.addEventListener("click", async (event) => {
     else location.hash = "#/";
   } else if (action === "retry") {
     render();
-  } else if (action === "toggle-theme") {
-    const next = effectiveTheme() === "dark" ? "light" : "dark";
-    local.setTheme(next);
-    applyTheme(next);
-    target.innerHTML = next === "dark" ? ICON.sun : ICON.moon;
-    target.setAttribute("aria-label", next === "dark" ? "Byt till ljust tema" : "Byt till mörkt tema");
+  } else if (action === "top") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (action === "theme") {
     local.setTheme(target.dataset.value);
     applyTheme(target.dataset.value);

@@ -1,7 +1,7 @@
 // Klubbhusets service worker: gör att appen startar snabbt och fungerar offline.
 // Nyheterna hämtas färskt när det finns nät; annars visas det som hämtades senast.
 
-const VERSION = "klubbhuset-v3";
+const VERSION = "klubbhuset-v4";
 const SHELL = [
   "./",
   "index.html",
