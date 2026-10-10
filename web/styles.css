@@ -85,18 +85,21 @@ img { display: block; max-width: 100%; }
   text-transform: uppercase; color: var(--muted);
 }
 .minihead {
-  position: sticky; top: 0; z-index: 6; background: var(--bg);
+  position: sticky; top: 0; transform: translateZ(0); z-index: 6; background: var(--bg);
   display: flex; align-items: center; justify-content: space-between;
   padding: 6px 12px 6px; padding-top: calc(6px + env(safe-area-inset-top));
   border-bottom: 3px double var(--ink);
 }
 .minihead .logo { font: 400 26px/1 var(--display); }
 
-/* Sektionsraden fastnar i toppen när du scrollar – inget annat rör sig */
+/* Sektionsraden fastnar i toppen när du scrollar – inget annat rör sig.
+   I webbläsaren: top 0, så att den inte följer med när Safaris verktygsfält krymper. */
 .navwrap {
-  position: sticky; top: env(safe-area-inset-top); z-index: 5; background: var(--bg);
+  position: sticky; top: 0; z-index: 5; background: var(--bg);
   border-top: 3px double var(--ink); border-bottom: 1px solid var(--rule);
+  transform: translateZ(0);
 }
+@media (display-mode: standalone) { .navwrap { top: env(safe-area-inset-top); } }
 .navwrap::after {
   content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 44px; pointer-events: none;
   background: linear-gradient(to right, transparent, var(--bg) 85%);
@@ -104,10 +107,10 @@ img { display: block; max-width: 100%; }
 }
 .navwrap.more::after { opacity: 1; }
 /* Täck statusraden när appen ligger på hemskärmen */
-body::before {
+@media (display-mode: standalone) { body::before {
   content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 7;
   height: env(safe-area-inset-top); background: var(--bg);
-}
+} }
 .sectionnav {
   display: flex; gap: 22px; padding: 0 20px; overflow-x: auto; white-space: nowrap;
   font: 600 14px/1 var(--sans); scrollbar-width: none;

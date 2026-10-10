@@ -1,7 +1,7 @@
 // Klubbhusets service worker: gör att appen startar snabbt och fungerar offline.
 // Nyheterna hämtas färskt när det finns nät; annars visas det som hämtades senast.
 
-const VERSION = "klubbhuset-v5";
+const VERSION = "klubbhuset-v6";
 const SHELL = [
   "./",
   "index.html",
@@ -16,7 +16,9 @@ const SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(SHELL)));
+  // cache: "reload" – hämta direkt från servern, aldrig en gammal kopia ur webbläsarens cache
+  event.waitUntil(caches.open(VERSION).then((cache) =>
+    cache.addAll(SHELL.map((path) => new Request(path, { cache: "reload" })))));
   self.skipWaiting();
 });
 
@@ -48,10 +50,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Appens egna filer och typsnitt: visa sparad version direkt, uppdatera i bakgrunden.
+  // Appens egna filer: alltid senaste versionen när det finns nät, sparad kopia offline.
   const isShell = url.origin === location.origin;
+  if (isShell) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-cache" })
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(VERSION).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Typsnitt: ändras aldrig, så visa sparad kopia direkt.
   const isFont = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
-  if (!isShell && !isFont) return;
+  if (!isFont) return;
 
   event.respondWith(
     caches.open(VERSION).then(async (cache) => {
