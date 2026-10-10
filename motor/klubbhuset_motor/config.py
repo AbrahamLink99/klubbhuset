@@ -41,6 +41,7 @@ class Settings:
     bing_delay_seconds: float = 3.0
     player_feed_every_hours: int = 6
     min_words_for_feed_text: int = 250
+    min_words_for_summary: int = 40
     # Måste vara ren ASCII – HTTP-huvuden tål inte å, ä och ö.
     user_agent: str = "Mozilla/5.0 (compatible; Klubbhuset/0.1; personal golf news reader)"
 

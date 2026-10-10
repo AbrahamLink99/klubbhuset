@@ -78,6 +78,9 @@ def _image(entry, content_html: str) -> str | None:
     image = entry.get("image")
     if isinstance(image, dict) and image.get("href"):
         return image["href"]
+    bing_image = entry.get("news_image")
+    if isinstance(bing_image, str) and bing_image.startswith("http"):
+        return bing_image.strip()
     match = _IMG_SRC.search(content_html or "")
     return match.group(1) if match else None
 

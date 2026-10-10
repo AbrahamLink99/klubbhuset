@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Protocol
@@ -61,7 +62,18 @@ Regler:
 - tags: två till sex korta ämnen som en läsare kan vilja följa, till exempel tävlingens namn, bana, märke eller modell.
 - players: namn på professionella eller kända golfspelare som texten handlar om.
 - relevant: false om texten inte är golfjournalistik – till exempel annonser, rabattkoder, köp och sälj, utlottningar, rena länklistor eller något som inte handlar om golf.
-- same_story_id: om artikeln rapporterar om exakt samma händelse eller nyhet som en av de befintliga storyerna i listan, ange dess id. Samma ämne räcker inte, det måste vara samma händelse. Annars 0."""
+- same_story_id: om artikeln rapporterar om exakt samma händelse eller nyhet som en av de befintliga storyerna i listan, ange dess id. Samma ämne räcker inte, det måste vara samma händelse. Annars 0.
+
+Tunt underlag:
+- Om längdtaket för summary är 0 räcker underlaget inte till en sammanfattning. Lämna då summary tomt och skriv bara rubrik och en ingress på en mening som håller sig strikt till det som står.
+- Hitta aldrig på namn, siffror, tävlingar eller händelser som inte står i underlaget. Är originalrubriken vag ska din rubrik vara lika försiktig.
+- Skriv aldrig om själva underlaget, ingressen eller källan i texten (till exempel "underlaget är begränsat" eller "artikeln anger inte").
+Språket:
+- Skriv idiomatisk svenska som en erfaren svensk sportjournalist. Översätt aldrig ord för ord – formulera om hellre än att följa engelsk meningsbyggnad.
+- Kontrollera genus och böjning: ett utslag, ett slag, ett hål, ett inspel, en runda, en putt, en birdie, en eagle, en bogey, cutten ("missade cutten"), en vinnare ("en DP World Tour-vinnares rutin").
+- Använd etablerade svenska golftermer: utslag, inspel, närspel, chip, puttning, bunkerslag, slag under par, första/andra/tredje/sista rundan, ledningen, delad ledning, cutten, spelrätt, tourkort, starttider, bollar och klubbor.
+- Behåll egennamn, tävlingsnamn och produktnamn som de stavas, men blanda inte in engelska ord i övrigt.
+- Läs igenom rubrik och ingress en gång till och rätta grammatiken innan du svarar."""
 
 ARTICLE_TOOL = {
     "name": "spara_artikel",
@@ -98,7 +110,14 @@ Regler:
 - title_sv: saklig rubrik för hela nyheten, högst 90 tecken, utan utropstecken eller lockbete.
 - ingress: en till två meningar med det viktigaste.
 - summary: en sammanhängande text i två till sex stycken separerade med en tom rad. Väv ihop fakta från alla källor och säg tydligt när källorna skiljer sig åt. Använd bara det som står i underlaget. Håll dig under det angivna taket.
-- angles: en kort mening per publikation om vad just den lyfter fram eller hur den skiljer sig från de andra."""
+- angles: en kort mening per publikation om vad just den lyfter fram eller hur den skiljer sig från de andra.
+- Skriv aldrig om själva underlaget eller sammanfattningarna, bara om nyheten.
+Språket:
+- Skriv idiomatisk svenska som en erfaren svensk sportjournalist. Översätt aldrig ord för ord – formulera om hellre än att följa engelsk meningsbyggnad.
+- Kontrollera genus och böjning: ett utslag, ett slag, ett hål, ett inspel, en runda, en putt, en birdie, en eagle, en bogey, cutten ("missade cutten"), en vinnare ("en DP World Tour-vinnares rutin").
+- Använd etablerade svenska golftermer: utslag, inspel, närspel, chip, puttning, bunkerslag, slag under par, första/andra/tredje/sista rundan, ledningen, delad ledning, cutten, spelrätt, tourkort, starttider, bollar och klubbor.
+- Behåll egennamn, tävlingsnamn och produktnamn som de stavas, men blanda inte in engelska ord i övrigt.
+- Läs igenom rubrik och ingress en gång till och rätta grammatiken innan du svarar."""
 
 STORY_TOOL = {
     "name": "spara_story",
@@ -124,6 +143,20 @@ STORY_TOOL = {
         "required": ["title_sv", "ingress", "summary", "angles"],
     },
 }
+
+
+_META_WORDS = ("underlag", "ingressen", "artikeln anger inte", "artikeln nämner inte", "texten anger inte")
+
+
+def strip_meta(text: str) -> str:
+    """Tar bort meningar där AI:n skriver om sitt underlag i stället för om nyheten."""
+    paragraphs = []
+    for paragraph in [p.strip() for p in str(text or "").split("\n\n") if p.strip()]:
+        sentences = re.split(r"(?<=[.!?])\s+", paragraph)
+        kept = [x for x in sentences if not any(w in x.lower() for w in _META_WORDS)]
+        if kept:
+            paragraphs.append(" ".join(kept))
+    return "\n\n".join(paragraphs).strip()
 
 
 def _clean_list(values, limit: int) -> list[str]:
@@ -199,8 +232,8 @@ class ClaudeSummarizer:
         return ArticleResult(
             relevant=bool(data.get("relevant", True)),
             title_sv=str(data.get("title_sv", "")).strip()[:140],
-            ingress=str(data.get("ingress", "")).strip(),
-            summary=enforce_word_cap(str(data.get("summary", "")), word_cap),
+            ingress=strip_meta(str(data.get("ingress", ""))),
+            summary="" if word_cap <= 0 else enforce_word_cap(strip_meta(str(data.get("summary", ""))), word_cap),
             section=section,
             tags=_clean_list(data.get("tags"), 8),
             players=_clean_list(data.get("players"), 10),
@@ -214,7 +247,7 @@ class ClaudeSummarizer:
                 f"<artikel publikation=\"{item['outlet']}\">\n"
                 f"Originalrubrik: {item['original_title']}\n"
                 f"Klubbhusets rubrik: {item['title_sv']}\n"
-                f"Sammanfattning:\n{item['summary']}\n</artikel>"
+                f"Sammanfattning:\n{item['summary'] or '(kort notis, bara rubriken finns)'}\n</artikel>"
             )
         prompt = f"Längdtak för summary: {word_cap} ord\n\n" + "\n\n".join(parts)
         data = self._call_tool(STORY_SYSTEM, prompt, STORY_TOOL, max_tokens=2500)
@@ -225,7 +258,7 @@ class ClaudeSummarizer:
         ]
         return StoryResult(
             title_sv=str(data.get("title_sv", "")).strip()[:140],
-            ingress=str(data.get("ingress", "")).strip(),
-            summary=enforce_word_cap(str(data.get("summary", "")), word_cap),
+            ingress=strip_meta(str(data.get("ingress", ""))),
+            summary=enforce_word_cap(strip_meta(str(data.get("summary", ""))), word_cap),
             angles=angles,
         )

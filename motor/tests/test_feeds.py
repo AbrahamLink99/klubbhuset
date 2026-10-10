@@ -42,6 +42,7 @@ def test_bing_item_is_unwrapped_and_credited_to_real_outlet():
     [item] = parse_feed(src("news_search", feed="https://www.bing.com/news/search?q=x"), BING_NEWS)
     assert item.url == "https://www.svt.se/sport/golf/aberg-klar"
     assert item.outlet == "SVT Sport"
+    assert item.image_url == "https://www.bing.com/th?id=OVFT.abc&pid=News"
 
 
 def test_fetch_all_pauses_between_bing_feeds_only():
@@ -85,3 +86,11 @@ def test_real_http_client_can_be_created_with_default_settings():
     settings.user_agent.encode("ascii")  # HTTP-huvuden måste vara ASCII
     with make_client(settings.user_agent, settings.fetch_timeout) as client:
         assert client.headers["User-Agent"] == settings.user_agent
+
+
+def test_share_image_is_found_in_page_head():
+    from klubbhuset_motor.fulltext import find_share_image
+    page = '<html><head><meta content="https://x.se/a.jpg?w=1&amp;h=2" property="og:image"></head></html>'
+    assert find_share_image(page) == "https://x.se/a.jpg?w=1&h=2"
+    assert find_share_image('<meta name="twitter:image" content="https://x.se/t.png">') == "https://x.se/t.png"
+    assert find_share_image("<html></html>") is None

@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
                     fetch=lambda due: feeds.fetch_all(
                         due, client, settings.fetch_workers, settings.bing_delay_seconds),
                     summarizer=summarizer,
-                    fetch_text=lambda url: fulltext.fetch_article_text(url, client),
+                    fetch_page=lambda url: fulltext.fetch_article(url, client),
                     now=now,
                 )
         counts = export_site(store, settings.web_dir, settings.site_dir, now)

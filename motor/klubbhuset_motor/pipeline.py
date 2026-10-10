@@ -11,6 +11,7 @@ from .ai import Summarizer
 from .catalog import Source, due_this_run
 from .config import Settings
 from .feeds import FetchResult
+from .fulltext import ArticlePage
 from .store import Store
 from .textutil import summary_word_cap, word_count
 
@@ -38,7 +39,7 @@ def run(
     catalog: list[Source],
     fetch: Callable[[list[Source]], list[FetchResult]],
     summarizer: Summarizer | None,
-    fetch_text: Callable[[str], str | None],
+    fetch_page: Callable[[str], ArticlePage | None],
     now: datetime | None = None,
     log: Callable[[str], None] = print,
     clock: Callable[[], float] = time.monotonic,
@@ -70,7 +71,7 @@ def run(
     if summarizer is None:
         log("Ingen AI-nyckel – artiklarna sparas och sammanfattas när nyckeln finns på plats.")
     else:
-        _summarize(settings, store, summarizer, fetch_text, now, stats, started, clock, log)
+        _summarize(settings, store, summarizer, fetch_page, now, stats, started, clock, log)
 
     # 5. Rangordna
     store.update_scores(now)
@@ -83,7 +84,7 @@ def run(
     return stats
 
 
-def _summarize(settings, store, summarizer, fetch_text, now, stats, started, clock, log) -> None:
+def _summarize(settings, store, summarizer, fetch_page, now, stats, started, clock, log) -> None:
     # 3. Sammanfatta och gruppera artiklar
     candidates = store.candidate_stories(now, settings.story_window_hours)
     known_players = store.known_players()
@@ -98,15 +99,20 @@ def _summarize(settings, store, summarizer, fetch_text, now, stats, started, clo
             text = item.get("pending_text") or item.get("excerpt") or ""
             words = word_count(text)
             full = words >= settings.min_words_for_feed_text
-            if not full and not item["paywall"]:
-                page_text = fetch_text(item["url"])
-                if page_text and word_count(page_text) > words:
-                    text, words = page_text, word_count(page_text)
+            # Läs artikelsidan om flödet bara gav en ingress eller saknar bild
+            if (not full or not item["image_url"]) and not item["paywall"]:
+                page = fetch_page(item["url"])
+                if page and not full and page.text and word_count(page.text) > words:
+                    text, words = page.text, word_count(page.text)
                     full = words >= settings.min_words_for_feed_text
+                if page and page.image and not item["image_url"]:
+                    item["image_url"] = page.image
+                    store.set_item_image(item["id"], page.image)
             if words == 0:
                 text, words = item["original_title"], word_count(item["original_title"])
 
-            cap = summary_word_cap(
+            # För tunt underlag blir det en kort notis utan sammanfattning
+            cap = 0 if words < settings.min_words_for_summary else summary_word_cap(
                 words, settings.summary_max_share, settings.summary_min_words, settings.summary_max_words
             )
             result = summarizer.summarize_article(
@@ -149,7 +155,10 @@ def _summarize(settings, store, summarizer, fetch_text, now, stats, started, clo
         if len(items) < 2:
             store.clear_synthesis_flag(story["id"])
             continue
-        cap = min(settings.story_summary_max_words, sum(word_count(i["summary"]) for i in items))
+        cap = min(settings.story_summary_max_words, sum(word_count(i["summary"] or "") for i in items))
+        if cap < settings.min_words_for_summary:
+            store.clear_synthesis_flag(story["id"])  # bara notiser – inget att väva ihop
+            continue
         try:
             store.save_story(story["id"], summarizer.synthesize_story(items=items, word_cap=cap), now)
             stats.synthesized += 1

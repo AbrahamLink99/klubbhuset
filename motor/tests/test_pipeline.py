@@ -8,6 +8,7 @@ from klubbhuset_motor.catalog import Source
 from klubbhuset_motor.config import Settings
 from klubbhuset_motor.export import export_site
 from klubbhuset_motor.feeds import FeedItem, FetchResult
+from klubbhuset_motor.fulltext import ArticlePage
 from klubbhuset_motor.pipeline import run
 from klubbhuset_motor.store import Store
 
@@ -44,7 +45,10 @@ def fake_fetch(due):
 
 
 def fetch_text(url):
-    return "Hela texten om svenskarna och Ryder Cup. " * 60 if "svenskgolf" in url else None  # 420 ord
+    if "svenskgolf" not in url:
+        return None
+    return ArticlePage(text="Hela texten om svenskarna och Ryder Cup. " * 60,  # 420 ord
+                       image="https://www.svenskgolf.se/bild.jpg")
 
 
 class FakeSummarizer:
@@ -80,7 +84,7 @@ def rows(store, sql, *args):
 def test_full_run_groups_two_outlets_into_one_story(store):
     summarizer = FakeSummarizer()
     stats = run(settings=SETTINGS, store=store, catalog=CATALOG, fetch=fake_fetch,
-                summarizer=summarizer, fetch_text=fetch_text, now=NOW, log=lambda _: None)
+                summarizer=summarizer, fetch_page=fetch_text, now=NOW, log=lambda _: None)
 
     assert (stats.feeds_ok, stats.feeds_failed, stats.new_items) == (3, 1, 4)
     assert (stats.summarized, stats.skipped) == (2, 1)
@@ -95,7 +99,7 @@ def test_full_run_groups_two_outlets_into_one_story(store):
     assert story["title_sv"] == "Sammanvävd rubrik"
     assert sorted(story["outlets"]) == ["GOLF.com", "Svensk Golf"] and story["outlet_count"] == 2
     assert len(story["angles"]) == 2 and not story["needs_synthesis"]
-    assert story["image_url"] == "https://golf.com/adare.jpg" and story["score"] > 0
+    assert story["image_url"] == "https://www.svenskgolf.se/bild.jpg" and story["score"] > 0  # första artikelns bild
 
     statuses = {r["url"]: r["status"] for r in rows(store, "select url, status from items")}
     assert statuses == {
@@ -105,12 +109,14 @@ def test_full_run_groups_two_outlets_into_one_story(store):
         "https://www.youtube.com/watch?v=abc": "ready",
     }
     assert rows(store, "select count(*) as n from items where pending_text is not null")[0]["n"] == 0
+    [sg] = rows(store, "select image_url from items where url = 'https://www.svenskgolf.se/svenskarna-adare'")
+    assert sg["image_url"] == "https://www.svenskgolf.se/bild.jpg"  # bilden hämtades från artikelsidan
     [broken] = rows(store, "select last_error, last_ok_at from sources where id = 'broken'")
     assert "404" in broken["last_error"] and broken["last_ok_at"] is None
 
     # En andra körning med samma flöden ska inte skapa dubbletter
     stats2 = run(settings=SETTINGS, store=store, catalog=CATALOG, fetch=fake_fetch,
-                 summarizer=summarizer, fetch_text=fetch_text, now=NOW, log=lambda _: None)
+                 summarizer=summarizer, fetch_page=fetch_text, now=NOW, log=lambda _: None)
     assert (stats2.new_items, stats2.summarized, stats2.stories_created) == (0, 0, 0)
     assert rows(store, "select count(*) as n from runs where finished_at is not null")[0]["n"] == 2
 
@@ -119,7 +125,7 @@ def test_archive_survives_closing_and_reopening(tmp_path):
     path = tmp_path / "klubbhuset.db"
     first = Store(path)
     run(settings=SETTINGS, store=first, catalog=CATALOG, fetch=fake_fetch,
-        summarizer=FakeSummarizer(), fetch_text=fetch_text, now=NOW, log=lambda _: None)
+        summarizer=FakeSummarizer(), fetch_page=fetch_text, now=NOW, log=lambda _: None)
     first.close()
     again = Store(path)
     assert len(again.all_stories()) == 1 and again.last_run()["new_items"] == 4
@@ -128,12 +134,12 @@ def test_archive_survives_closing_and_reopening(tmp_path):
 
 def test_without_ai_key_items_are_kept_for_later(store):
     stats = run(settings=SETTINGS, store=store, catalog=CATALOG, fetch=fake_fetch,
-                summarizer=None, fetch_text=fetch_text, now=NOW, log=lambda _: None)
+                summarizer=None, fetch_page=fetch_text, now=NOW, log=lambda _: None)
     assert stats.new_items == 4 and stats.summarized == 0
     assert rows(store, "select count(*) as n from items where status = 'new'")[0]["n"] == 3
     # Senare, när nyckeln finns, sammanfattas de
     stats2 = run(settings=SETTINGS, store=store, catalog=CATALOG, fetch=fake_fetch,
-                 summarizer=FakeSummarizer(), fetch_text=fetch_text, now=NOW, log=lambda _: None)
+                 summarizer=FakeSummarizer(), fetch_page=fetch_text, now=NOW, log=lambda _: None)
     assert stats2.summarized == 2
 
 
@@ -144,7 +150,7 @@ def test_failed_article_is_retried_then_given_up(store):
 
     for _ in range(4):
         run(settings=SETTINGS, store=store, catalog=[GOLFCOM], fetch=lambda due: [fake_fetch(due)[0]],
-            summarizer=Exploding(), fetch_text=lambda url: None, now=NOW, log=lambda _: None)
+            summarizer=Exploding(), fetch_page=lambda url: None, now=NOW, log=lambda _: None)
     [item] = rows(store, "select status, attempts, pending_text, last_error from items")
     assert item["status"] == "failed" and item["attempts"] == 3
     assert item["pending_text"] is None and "API nere" in item["last_error"]
@@ -152,7 +158,7 @@ def test_failed_article_is_retried_then_given_up(store):
 
 def test_export_builds_site_with_api_files(store, tmp_path):
     run(settings=SETTINGS, store=store, catalog=CATALOG, fetch=fake_fetch,
-        summarizer=FakeSummarizer(), fetch_text=fetch_text, now=NOW, log=lambda _: None)
+        summarizer=FakeSummarizer(), fetch_page=fetch_text, now=NOW, log=lambda _: None)
     web = tmp_path / "web"
     web.mkdir()
     (web / "index.html").write_text("<!doctype html>", encoding="utf-8")
@@ -175,3 +181,32 @@ def test_export_builds_site_with_api_files(store, tmp_path):
     # Hela artiklar ska aldrig hamna i det publicerade
     published = "".join(p.read_text(encoding="utf-8") for p in (site / "api").rglob("*.json"))
     assert "Ryder Cup spelas på Adare Manor. Ryder Cup" not in published
+
+
+def test_thin_item_becomes_short_notice_without_summary(store):
+    bing = Source(id="bing-x", name="Bing", kind="news_search", feed="https://www.bing.com/news/search?q=x")
+    thin = FetchResult(bing, [FeedItem(
+        url="https://www.msn.com/rahm", title="Jon Rahm leaving LIV Golf. When will he return to PGA Tour?",
+        published=NOW - timedelta(hours=1), text="Jon Rahm is officially leaving LIV Golf, reports say.",
+        outlet="Golfweek on MSN")])
+    summarizer = FakeSummarizer()
+    run(settings=SETTINGS, store=store, catalog=[bing], fetch=lambda due: [thin],
+        summarizer=summarizer, fetch_page=lambda url: None, now=NOW, log=lambda _: None)
+    assert summarizer.calls[0]["cap"] == 0
+    [story] = store.all_stories()
+    assert story["summary"] == "" and story["outlets"] == ["Golfweek on MSN"]
+
+
+def test_meta_summaries_are_cleaned_when_archive_opens(tmp_path):
+    path = tmp_path / "k.db"
+    first = Store(path)
+    first.conn.execute(
+        "insert into stories (section, title_sv, ingress, summary, first_published_at, last_published_at, created_at, updated_at) "
+        "values ('Touren', 'R', 'I', 'Underlaget är bara artikelns ingress.', 'x', 'x', 'x', 'x'), "
+        "('Touren', 'R2', 'I2', 'Rahm lämnar LIV. Underlaget är tunt. Han siktar på PGA Tour.', 'x', 'x', 'x', 'x')")
+    first.conn.commit()
+    first.conn.close()
+    again = Store(path)
+    summaries = sorted(s["summary"] for s in again.all_stories())
+    assert summaries == ["", "Rahm lämnar LIV. Han siktar på PGA Tour."]
+    again.conn.close()

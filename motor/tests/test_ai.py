@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from klubbhuset_motor.ai import ClaudeSummarizer
+from klubbhuset_motor.ai import ClaudeSummarizer, strip_meta
 from klubbhuset_motor.textutil import word_count
 
 
@@ -49,3 +49,18 @@ def test_known_story_id_is_kept():
     })
     result = summarizer.summarize_article(word_cap=100, candidates=[{"id": 7, "title_sv": "X", "section": "Touren"}], **ARGS)
     assert result.same_story_id == 7 and result.section == "Spelare"
+
+
+def test_zero_cap_gives_empty_summary_and_meta_is_removed():
+    summarizer, messages = summarizer_with({
+        "relevant": True, "title_sv": "Rahm lämnar LIV Golf", "ingress": "Jon Rahm lämnar LIV Golf. Underlaget är kort.",
+        "summary": "Något.", "section": "Touren", "tags": [], "players": [], "same_story_id": 0,
+    })
+    result = summarizer.summarize_article(word_cap=0, candidates=[], **ARGS)
+    assert result.summary == "" and result.ingress == "Jon Rahm lämnar LIV Golf."
+    assert "ett utslag" in messages.requests[0]["system"]  # språkreglerna följer med
+
+
+def test_strip_meta_keeps_real_content():
+    text = "Åberg slog 66.\n\nUnderlaget är begränsat. Han leder."
+    assert strip_meta(text) == "Åberg slog 66.\n\nHan leder."

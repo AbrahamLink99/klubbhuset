@@ -66,5 +66,6 @@ BING_NEWS = """<?xml version="1.0" encoding="utf-8" ?>
   <description>Ludvig Åberg är klar för säsongsfinalen.</description>
   <pubDate>Thu, 08 Oct 2026 12:00:00 GMT</pubDate>
   <News:Source>SVT Sport</News:Source>
+  <News:Image>https://www.bing.com/th?id=OVFT.abc&amp;pid=News</News:Image>
 </item>
 </channel></rss>""".encode("utf-8")

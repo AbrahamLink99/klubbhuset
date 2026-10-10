@@ -12,7 +12,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .ai import ArticleResult, StoryResult
+from .ai import ArticleResult, StoryResult, strip_meta
 from .catalog import Source
 from .feeds import FeedItem
 from .textutil import make_excerpt, word_count
@@ -95,6 +95,16 @@ class Store:
         self.conn = sqlite3.connect(self.path)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        # Städa bort meningar där AI:n skrev om underlaget i stället för om nyheten
+        for table in ("stories", "items"):
+            for row in self.conn.execute(
+                f"select id, summary, ingress from {table} "
+                "where summary like '%nderlag%' or summary like '%ingressen%' or ingress like '%nderlag%'"
+            ).fetchall():
+                self.conn.execute(
+                    f"update {table} set summary = ?, ingress = ? where id = ?",
+                    (strip_meta(row["summary"] or ""), strip_meta(row["ingress"] or "") or row["ingress"], row["id"]),
+                )
         self.conn.commit()
 
     def close(self) -> None:
@@ -204,6 +214,9 @@ class Store:
              story_id, source_words, item_id),
         )
 
+    def set_item_image(self, item_id: int, image_url: str) -> None:
+        self._write("update items set image_url = ? where id = ?", (image_url, item_id))
+
     def mark_item_skipped(self, item_id: int) -> None:
         self._write(
             "update items set status = 'skipped', pending_text = null, attempts = attempts + 1 where id = ?",
@@ -312,12 +325,15 @@ class Store:
     def update_scores(self, now: datetime) -> None:
         """Poäng = källans vikt × fler publikationer × färskhet (halveras ungefär var 17:e timme)."""
         rows = self._rows(
-            "select id, weight, outlet_count, last_published_at from stories where last_published_at > ? or score > 0",
+            "select id, weight, outlet_count, last_published_at, summary from stories "
+            "where last_published_at > ? or score > 0",
             (iso(now - timedelta(days=8)),),
         )
         for row in rows:
             age_hours = max(0.0, (now - parse_iso(row["last_published_at"])).total_seconds() / 3600)
             score = row["weight"] * (1 + math.log(max(row["outlet_count"], 1))) * math.exp(-age_hours / 24)
+            if not row["summary"]:
+                score *= 0.6  # korta notiser hamnar under nyheter med sammanfattning
             self.conn.execute("update stories set score = ? where id = ?", (round(score, 6), row["id"]))
         self.conn.commit()
 

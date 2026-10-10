@@ -4,6 +4,7 @@
 const SAVED_KEY = "klubbhuset.saved.v1";
 const READ_KEY = "klubbhuset.read.v1";
 const READ_MAX = 2000;
+const THEME_KEY = "klubbhuset.theme";
 
 function load(key, fallback) {
   try {
@@ -40,6 +41,13 @@ export const local = {
       others.unshift({ ...snapshot, saved_at: new Date().toISOString() });
     }
     store(SAVED_KEY, others);
+  },
+  theme() {
+    const value = load(THEME_KEY, "auto");
+    return ["light", "dark"].includes(value) ? value : "auto";
+  },
+  setTheme(value) {
+    store(THEME_KEY, value);
   },
   readIds() {
     return new Set(load(READ_KEY, []));

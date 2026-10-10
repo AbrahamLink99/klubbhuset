@@ -1,6 +1,7 @@
 // Klubbhuset – appen. Enkel router med en vy per adress (#/, #/story/12, #/sparat …).
 
 import { createApi } from "./api.js";
+import { local } from "./local.js";
 
 const SECTIONS = [
   { slug: "touren", name: "Touren" },
@@ -26,29 +27,40 @@ const ICON = {
   bookmark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16l-5-3.5L7 20z"/></svg>',
   external: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/></svg>',
   play: '<svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7l8 5-8 5z"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
   headphones: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6" rx="1.5"/><rect x="16.5" y="14" width="4" height="6" rx="1.5"/></svg>',
 };
 
-const CONTOUR =
-  '<svg class="contour" viewBox="0 0 350 220" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">' +
-  '<ellipse cx="230" cy="118" rx="34" ry="20" transform="rotate(-10 230 118)"/>' +
-  '<ellipse cx="229" cy="119" rx="66" ry="40" transform="rotate(-10 229 119)"/>' +
-  '<ellipse cx="226" cy="120" rx="100" ry="62" transform="rotate(-8 226 120)"/>' +
-  '<ellipse cx="220" cy="122" rx="138" ry="86" transform="rotate(-6 220 122)"/>' +
-  '<ellipse cx="212" cy="124" rx="180" ry="112" transform="rotate(-4 212 124)"/>' +
-  '<ellipse cx="204" cy="126" rx="226" ry="140"/>' +
-  '<ellipse cx="44" cy="40" rx="26" ry="16"/><ellipse cx="44" cy="40" rx="50" ry="31"/></svg>';
-
-function photo(story, extraClass = "") {
+// Bara riktiga bilder – saknas bilden blir det en ren textnyhet, som i en tidning.
+function photo(story, caption = "") {
+  if (!story.image_url) return "";
   const tint = `ph-${(Number(story.id) % 3) + 1}`;
-  const img = story.image_url
-    ? `<img src="${esc(story.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="position:absolute;inset:0" onerror="this.remove()">`
-    : "";
-  return `<div class="photo ${tint} ${extraClass}">${CONTOUR}${img}</div>`;
+  return `<figure class="photo-wrap"><div class="photo ${tint}"><img src="${esc(story.image_url)}" alt=""
+    loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('figure').remove()"></div>${
+    caption ? `<figcaption class="caption">${esc(caption)}</figcaption>` : ""}</figure>`;
 }
 
+// --- Tema ---------------------------------------------------------------------
+
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme(choice) {
+  if (choice === "light" || choice === "dark") document.documentElement.dataset.theme = choice;
+  else delete document.documentElement.dataset.theme;
+}
+
+function effectiveTheme() {
+  const choice = local.theme();
+  return choice === "auto" ? (darkQuery.matches ? "dark" : "light") : choice;
+}
+
+const GENERIC_WORDS = new Set(["golf", "the", "on", "msn", "com", "www"]);
+
 function initials(name) {
-  const words = String(name || "?").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const all = String(name || "?").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const specific = all.filter((w) => !GENERIC_WORDS.has(w.toLowerCase()));
+  const words = specific.length ? specific : all;
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
@@ -119,7 +131,8 @@ function masthead(active) {
     .join("");
   return `
     <header class="topbar">
-      <span class="spacer"></span>
+      <button class="icon-btn" data-action="toggle-theme"
+        aria-label="${effectiveTheme() === "dark" ? "Byt till ljust tema" : "Byt till mörkt tema"}">${effectiveTheme() === "dark" ? ICON.sun : ICON.moon}</button>
       <span class="date">${esc(todayLine())}</span>
       <a class="icon-btn" href="#/sok" aria-label="Sök">${ICON.search}</a>
     </header>
@@ -187,8 +200,7 @@ async function viewFront() {
         <div class="kicker">${esc(lead.section)}${lead.tags && lead.tags[0] ? " · " + esc(lead.tags[0]) : ""}</div>
         <h2 class="title">${esc(lead.title_sv)}</h2>
         <p class="dek">${esc(lead.ingress)}</p>
-        ${photo(lead)}
-        ${lead.image_url ? `<div class="caption">Bild från ${esc((lead.outlets || [])[0] || "källan")}</div>` : ""}
+        ${photo(lead, `Bild från ${(lead.outlets || [])[0] || "källan"}`)}
         ${sourcesLine(lead)}
       </a>`
     : `<div class="empty">Inga nyheter ännu. Motorn fyller på varje timme.</div>`;
@@ -263,12 +275,13 @@ async function viewStory(id) {
       <div class="kicker">${esc(story.section)}${story.tags && story.tags[0] ? " · " + esc(story.tags[0]) : ""}</div>
       <h1>${esc(story.title_sv)}</h1>
       <div class="sources" style="margin-top:0"><span class="badges">${outlets.slice(0, 4).map(badge).join("")}</span>
-        <span>Sammanfattad ur <b>${story.outlet_count || 1} ${story.outlet_count > 1 ? "källor" : "källa"}</b> · ${esc(ago(story.last_published_at))}</span></div>
-      ${photo(story)}
-      ${story.image_url ? `<div class="caption">Bild från ${esc(outlets[0] || "källan")}</div>` : ""}
+        <span>${story.summary ? "Sammanfattad ur" : "Från"} <b>${story.outlet_count || 1} ${story.outlet_count > 1 ? "källor" : "källa"}</b> · ${esc(ago(story.last_published_at))}</span></div>
+      ${photo(story, `Bild från ${outlets[0] || "källan"}`)}
 
-      <div class="label">Sammanfattning</div>
-      <div class="summary">${paragraphs(story.summary)}</div>
+      ${story.summary
+        ? `<div class="label">Sammanfattning</div><div class="summary">${paragraphs(story.summary)}</div>`
+        : `<div class="label">Kort notis</div><div class="summary"><p>${esc(story.ingress)}</p></div>
+           <p class="notis-note">Källan har bara publicerat en kort text här. Hela nyheten finns hos källan nedan.</p>`}
 
       ${angles.length >= 2 ? `<section class="angles section-rule"><h2>Så skiljer sig källorna</h2>
         <ul>${angles.map((a) => `<li><b>${esc(a.outlet)}</b> – ${esc(a.angle)}</li>`).join("")}</ul></section>` : ""}
@@ -331,7 +344,15 @@ async function viewSections() {
     <div class="page-title"><h1>Sektioner</h1></div>
     ${SECTIONS.map((s) => `<a class="row" href="#/sektion/${s.slug}"><div class="text"><h3 class="title">${esc(s.name)}</h3></div></a>`).join("")}
     <a class="row" href="#/halsa"><div class="text"><div class="kicker">Drift</div><h3 class="title">Källornas hälsa</h3>
-      <p>Vilka flöden som svarar och när de senast gav något nytt.</p></div></a>`;
+      <p>Vilka flöden som svarar och när de senast gav något nytt.</p></div></a>
+    <section class="settings">
+      <div class="block-head"><h2>Utseende</h2></div>
+      <div class="chips" role="group" aria-label="Tema">
+        ${[["auto", "Som telefonen"], ["light", "Ljust"], ["dark", "Mörkt"]].map(([value, label]) =>
+          `<button class="chip ${local.theme() === value ? "on" : ""}" data-action="theme" data-value="${value}"
+            aria-pressed="${local.theme() === value}">${label}</button>`).join("")}
+      </div>
+    </section>`;
 }
 
 async function viewHealth() {
@@ -403,6 +424,16 @@ document.addEventListener("click", async (event) => {
     else location.hash = "#/";
   } else if (action === "retry") {
     render();
+  } else if (action === "toggle-theme") {
+    const next = effectiveTheme() === "dark" ? "light" : "dark";
+    local.setTheme(next);
+    applyTheme(next);
+    target.innerHTML = next === "dark" ? ICON.sun : ICON.moon;
+    target.setAttribute("aria-label", next === "dark" ? "Byt till ljust tema" : "Byt till mörkt tema");
+  } else if (action === "theme") {
+    local.setTheme(target.dataset.value);
+    applyTheme(target.dataset.value);
+    render();
   } else if (action === "save") {
     const on = target.getAttribute("aria-pressed") !== "true";
     target.setAttribute("aria-pressed", String(on));
@@ -425,6 +456,8 @@ document.addEventListener("submit", async (event) => {
 window.addEventListener("hashchange", render);
 
 (async function start() {
+  applyTheme(local.theme());
+  darkQuery.addEventListener("change", () => { if (local.theme() === "auto") render(); });
   state.api = await createApi();
   await render();
   if ("serviceWorker" in navigator && location.protocol === "https:") {

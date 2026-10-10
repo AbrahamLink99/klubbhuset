@@ -16,8 +16,9 @@
   --tabbar-h: 64px;
 }
 
+/* Mörkt tema: följer telefonen, om du inte har valt Ljust eller Mörkt i appen */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #121212;
     --ink: #ececec;
     --body: #d2d2d2;
@@ -27,7 +28,20 @@
     --ph-1: #23302a; --ph-1-line: #34463b;
     --ph-2: #302b22; --ph-2-line: #474033;
     --ph-3: #232b30; --ph-3-line: #36424a;
+    color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+    --bg: #121212;
+    --ink: #ececec;
+    --body: #d2d2d2;
+    --muted: #a6a6a6;
+    --rule: #333333;
+    --accent: #7cc49a;
+    --ph-1: #23302a; --ph-1-line: #34463b;
+    --ph-2: #302b22; --ph-2-line: #474033;
+    --ph-3: #232b30; --ph-3-line: #36424a;
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -105,6 +119,10 @@ img { display: block; max-width: 100%; }
 .lead .photo { aspect-ratio: 16 / 10; width: 100%; }
 .caption { margin-top: 6px; font: 400 11px/1.4 var(--sans); color: var(--muted); }
 
+.photo-wrap { margin: 0; }
+.row .photo-wrap { flex: none; }
+.story .photo-wrap { margin-top: 18px; }
+.story .photo-wrap .photo { margin-top: 0; }
 .photo { position: relative; overflow: hidden; background: var(--ph-1); }
 .photo img { width: 100%; height: 100%; object-fit: cover; }
 .ph-1 { background: var(--ph-1); color: var(--ph-1-line); }
@@ -126,7 +144,8 @@ img { display: block; max-width: 100%; }
 .badge.c1 { background: #1e5e3b; } .badge.c2 { background: #7a5c2e; }
 .badge.c3 { background: #1f4e79; } .badge.c4 { background: #6b2e5a; }
 .badge.c5 { background: #8a1c1c; } .badge.c0 { background: #121212; }
-@media (prefers-color-scheme: dark) { .badge.c0 { background: #4a4a4a; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .badge.c0 { background: #4a4a4a; } }
+:root[data-theme="dark"] .badge.c0 { background: #4a4a4a; }
 
 /* --- Listor --------------------------------------------------------------- */
 .row {
@@ -235,7 +254,12 @@ img { display: block; max-width: 100%; }
 .health td, .health th { padding: 8px 6px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
 .health { width: 100%; border-collapse: collapse; font: 400 12px/1.35 var(--sans); }
 .health .bad { color: #b3261e; }
-@media (prefers-color-scheme: dark) { .health .bad { color: #f2867b; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .health .bad { color: #f2867b; } }
+:root[data-theme="dark"] .health .bad { color: #f2867b; }
+
+.notis-note { margin: 0 0 4px; font: 400 13px/1.45 var(--sans); color: var(--muted); }
+.settings { padding: 26px 20px 4px; }
+.settings .chips { padding: 12px 0 0; }
 
 /* --- Flikrad -------------------------------------------------------------- */
 .tabbar {
